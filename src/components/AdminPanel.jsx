@@ -1,6 +1,9 @@
 import { useState, useEffect, useRef } from 'react';
 import { getAdminSettings, updateAdminSettings, resetAdminSettings } from '../utils/storage';
 
+// Admin-adgangskode sættes som env-variabel i Netlify
+const ADMIN_PASSWORD = import.meta.env.VITE_ADMIN_PASSWORD || '';
+
 // Alle sider i appen med deres hardcoded defaults
 const ALL_PAGES = [
   { path: '/', label: 'Forside', defaultTitle: '', defaultDesc: '12 gratis online beregningsværktøjer til tømrere: materialeberegner, taghældning, skæreplan, tilbudsberegner, vægtberegner og mere.' },
@@ -30,7 +33,6 @@ export default function AdminPanel() {
   useEffect(() => {
     const s = getAdminSettings();
     setSettings(s);
-    // Tjek om brugeren allerede er logget ind i denne session
     if (sessionStorage.getItem('toemrer_admin_auth') === 'true') {
       setAuthenticated(true);
     }
@@ -41,9 +43,23 @@ export default function AdminPanel() {
     setTimeout(() => setMessage(null), 3000);
   };
 
-  // ─── Password Gate ─────────────────────────────────
+  // Hvis VITE_ADMIN_PASSWORD ikke er sat, er admin utilgængeligt
+  if (!ADMIN_PASSWORD) {
+    return (
+      <div className="tool-page">
+        <div className="card admin-login-card">
+          <h2>🔒 Admin ikke konfigureret</h2>
+          <p className="text-muted">
+            Admin panelet kræver en adgangskode sat som miljøvariabel.<br />
+            Tilføj <code>VITE_ADMIN_PASSWORD</code> i Netlify under Site settings &gt; Environment variables, og deploy igen.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
   if (!authenticated) {
-    return <PasswordGate settings={settings} onAuth={() => {
+    return <PasswordGate onAuth={() => {
       setAuthenticated(true);
       sessionStorage.setItem('toemrer_admin_auth', 'true');
       setSettings(getAdminSettings());
@@ -93,45 +109,25 @@ export default function AdminPanel() {
 }
 
 // ─── Password Gate Component ─────────────────────────
-function PasswordGate({ settings, onAuth }) {
+function PasswordGate({ onAuth }) {
   const [pw, setPw] = useState('');
-  const [confirmPw, setConfirmPw] = useState('');
   const [error, setError] = useState('');
-  const isFirstTime = !settings.password;
 
   const handleSubmit = (e) => {
     e.preventDefault();
     setError('');
-
-    if (isFirstTime) {
-      if (pw.length < 4) {
-        setError('Adgangskoden skal være mindst 4 tegn.');
-        return;
-      }
-      if (pw !== confirmPw) {
-        setError('Adgangskoderne matcher ikke.');
-        return;
-      }
-      updateAdminSettings({ password: pw });
+    if (pw === ADMIN_PASSWORD) {
       onAuth();
     } else {
-      if (pw === settings.password) {
-        onAuth();
-      } else {
-        setError('Forkert adgangskode.');
-      }
+      setError('Forkert adgangskode.');
     }
   };
 
   return (
     <div className="tool-page">
       <div className="card admin-login-card">
-        <h2>🔒 {isFirstTime ? 'Opret admin-adgangskode' : 'Admin Login'}</h2>
-        <p className="text-muted">
-          {isFirstTime
-            ? 'Vælg en adgangskode til admin panelet. Den gemmes lokalt i din browser.'
-            : 'Indtast din adgangskode for at tilgå admin panelet.'}
-        </p>
+        <h2>🔒 Admin Login</h2>
+        <p className="text-muted">Indtast adgangskoden for at tilgå admin panelet.</p>
         <form onSubmit={handleSubmit}>
           <div className="form-group">
             <label>Adgangskode</label>
@@ -144,22 +140,8 @@ function PasswordGate({ settings, onAuth }) {
               autoFocus
             />
           </div>
-          {isFirstTime && (
-            <div className="form-group">
-              <label>Bekræft adgangskode</label>
-              <input
-                className="input"
-                type="password"
-                value={confirmPw}
-                onChange={e => setConfirmPw(e.target.value)}
-                placeholder="Gentag adgangskode"
-              />
-            </div>
-          )}
           {error && <p className="admin-error">{error}</p>}
-          <button type="submit" className="btn btn-primary btn-block">
-            {isFirstTime ? 'Opret & log ind' : 'Log ind'}
-          </button>
+          <button type="submit" className="btn btn-primary btn-block">Log ind</button>
         </form>
       </div>
     </div>
@@ -304,9 +286,8 @@ function ScriptsTab({ settings, setSettings, showMessage }) {
 function SettingsTab({ settings, setSettings, showMessage, importRef }) {
   const [siteName, setSiteName] = useState(settings.siteName || '');
   const [baseUrl, setBaseUrl] = useState(settings.baseUrl || '');
-  const [newPw, setNewPw] = useState('');
-  const [confirmPw, setConfirmPw] = useState('');
-  const [pwError, setPwError] = useState('');
+  const [apiUrl, setApiUrl] = useState(settings.emailApiUrl || '');
+  const [adminToken, setAdminToken] = useState(settings.emailAdminToken || '');
 
   const handleSaveSite = () => {
     const updated = updateAdminSettings({ siteName, baseUrl });
@@ -314,21 +295,10 @@ function SettingsTab({ settings, setSettings, showMessage, importRef }) {
     showMessage('Site-indstillinger gemt!');
   };
 
-  const handleChangePw = () => {
-    setPwError('');
-    if (newPw.length < 4) {
-      setPwError('Mindst 4 tegn.');
-      return;
-    }
-    if (newPw !== confirmPw) {
-      setPwError('Adgangskoderne matcher ikke.');
-      return;
-    }
-    const updated = updateAdminSettings({ password: newPw });
+  const handleSaveEmail = () => {
+    const updated = updateAdminSettings({ emailApiUrl: apiUrl, emailAdminToken: adminToken });
     setSettings(updated);
-    setNewPw('');
-    setConfirmPw('');
-    showMessage('Adgangskode ændret!');
+    showMessage('E-mail-indstillinger gemt!');
   };
 
   const handleExport = () => {
@@ -351,16 +321,12 @@ function SettingsTab({ settings, setSettings, showMessage, importRef }) {
       try {
         const data = JSON.parse(ev.target.result);
         if (typeof data !== 'object') throw new Error();
-        // Behold nuværende password medmindre importfilen har et
-        const currentPw = settings.password;
-        const imported = { ...data };
-        if (!imported.password && currentPw) {
-          imported.password = currentPw;
-        }
-        localStorage.setItem('toemrer_admin_settings', JSON.stringify(imported));
-        setSettings(imported);
-        setSiteName(imported.siteName || '');
-        setBaseUrl(imported.baseUrl || '');
+        localStorage.setItem('toemrer_admin_settings', JSON.stringify(data));
+        setSettings(data);
+        setSiteName(data.siteName || '');
+        setBaseUrl(data.baseUrl || '');
+        setApiUrl(data.emailApiUrl || '');
+        setAdminToken(data.emailAdminToken || '');
         showMessage('Indstillinger importeret!');
       } catch {
         showMessage('Ugyldig JSON-fil.', 'error');
@@ -371,11 +337,13 @@ function SettingsTab({ settings, setSettings, showMessage, importRef }) {
   };
 
   const handleResetAll = () => {
-    if (confirm('Er du sikker? Alle admin-indstillinger nulstilles. Din adgangskode beholdes.')) {
+    if (confirm('Er du sikker? Alle admin-indstillinger nulstilles (SEO, scripts, site, e-mail).')) {
       const reset = resetAdminSettings();
       setSettings(reset);
       setSiteName('');
       setBaseUrl('');
+      setApiUrl('');
+      setAdminToken('');
       showMessage('Alle indstillinger nulstillet!');
     }
   };
@@ -408,29 +376,30 @@ function SettingsTab({ settings, setSettings, showMessage, importRef }) {
       </div>
 
       <div className="card">
-        <h3>Skift adgangskode</h3>
+        <h3>E-mail (SMTP server)</h3>
+        <p className="text-muted">Forbind til din e-mail-server, så besøgende kan få tilsendt beregninger som PDF.</p>
         <div className="form-group">
-          <label>Ny adgangskode</label>
+          <label>API URL</label>
+          <input
+            className="input"
+            value={apiUrl}
+            onChange={e => setApiUrl(e.target.value)}
+            placeholder="https://din-server.com/api"
+          />
+          <small className="text-muted">URL til din Express e-mail-server (se DEPLOY.md).</small>
+        </div>
+        <div className="form-group">
+          <label>Admin Token</label>
           <input
             className="input"
             type="password"
-            value={newPw}
-            onChange={e => setNewPw(e.target.value)}
-            placeholder="Ny adgangskode (min. 4 tegn)"
+            value={adminToken}
+            onChange={e => setAdminToken(e.target.value)}
+            placeholder="Hemmeligt token til e-mail API"
           />
+          <small className="text-muted">Skal matche ADMIN_TOKEN på serveren.</small>
         </div>
-        <div className="form-group">
-          <label>Bekræft</label>
-          <input
-            className="input"
-            type="password"
-            value={confirmPw}
-            onChange={e => setConfirmPw(e.target.value)}
-            placeholder="Gentag ny adgangskode"
-          />
-        </div>
-        {pwError && <p className="admin-error">{pwError}</p>}
-        <button className="btn btn-primary" onClick={handleChangePw}>🔑 Skift adgangskode</button>
+        <button className="btn btn-primary" onClick={handleSaveEmail}>💾 Gem e-mail</button>
       </div>
 
       <div className="card">
@@ -455,7 +424,7 @@ function SettingsTab({ settings, setSettings, showMessage, importRef }) {
           🗑 Nulstil alle indstillinger
         </button>
         <small className="text-muted" style={{ display: 'block', marginTop: '0.5rem' }}>
-          Nulstiller SEO, scripts og site-indstillinger. Din adgangskode beholdes.
+          Nulstiller SEO, scripts, site- og e-mail-indstillinger.
         </small>
       </div>
 

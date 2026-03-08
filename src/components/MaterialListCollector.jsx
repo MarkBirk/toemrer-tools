@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { getMaterialList, removeMaterialListItem, clearMaterialList, updateMaterialList } from '../utils/storage';
+import { getMaterialList, removeMaterialListItem, clearMaterialList, updateMaterialList, getAdminSettings } from '../utils/storage';
 import { downloadPDF, downloadCSV, downloadJSON, copyText, generateEmailHTML, getPDFBase64 } from '../utils/exportUtils';
 
 export default function MaterialListCollector() {
@@ -53,8 +53,9 @@ export default function MaterialListCollector() {
     if (!emailTo.trim()) return flash('Angiv modtager');
     setSending(true);
     try {
-      const token = localStorage.getItem('toemrer_admin_token') || '';
-      const apiUrl = localStorage.getItem('toemrer_api_url') || '/api';
+      const adminSettings = getAdminSettings();
+      const token = adminSettings.emailAdminToken || '';
+      const apiUrl = adminSettings.emailApiUrl || '/api';
       const res = await fetch(`${apiUrl}/send-email`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'x-admin-token': token },

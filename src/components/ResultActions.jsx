@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { saveItem, addToMaterialList } from '../utils/storage';
+import { saveItem, addToMaterialList, getAdminSettings } from '../utils/storage';
 import { downloadPDF, downloadCSV, downloadJSON, copyText, generateEmailHTML, getPDFBase64 } from '../utils/exportUtils';
 import { copyShareLink } from '../utils/shareLink';
 
@@ -47,8 +47,9 @@ export default function ResultActions({ toolType, toolPath, title, inputs, resul
     const recipients = emailTo.split(',').map(e => e.trim()).filter(Boolean);
     setEmailSending(true);
     try {
-      const adminToken = localStorage.getItem('toemrer_admin_token') || '';
-      const apiUrl = localStorage.getItem('toemrer_api_url') || '/api';
+      const adminSettings = getAdminSettings();
+      const adminToken = adminSettings.emailAdminToken || '';
+      const apiUrl = adminSettings.emailApiUrl || '/api';
       const pdfBase64 = getPDFBase64(data);
       const res = await fetch(`${apiUrl}/send-email`, {
         method: 'POST',

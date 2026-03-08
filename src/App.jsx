@@ -70,39 +70,6 @@ function Home() {
         ))}
       </div>
       {filtered.length === 0 && <p className="text-muted text-center">Ingen værktøjer matcher søgningen.</p>}
-
-      <div className="home-settings">
-        <details>
-          <summary>Indstillinger</summary>
-          <div className="card mt-1">
-            <div className="form-group">
-              <label>API URL (e-mail server)</label>
-              <input
-                className="input"
-                defaultValue={localStorage.getItem('toemrer_api_url') || ''}
-                placeholder="http://localhost:3001/api"
-                onChange={e => {
-                  if (e.target.value) localStorage.setItem('toemrer_api_url', e.target.value);
-                  else localStorage.removeItem('toemrer_api_url');
-                }}
-              />
-            </div>
-            <div className="form-group">
-              <label>Admin token</label>
-              <input
-                className="input"
-                type="password"
-                defaultValue={localStorage.getItem('toemrer_admin_token') || ''}
-                placeholder="Token til e-mail API"
-                onChange={e => {
-                  if (e.target.value) localStorage.setItem('toemrer_admin_token', e.target.value);
-                  else localStorage.removeItem('toemrer_admin_token');
-                }}
-              />
-            </div>
-          </div>
-        </details>
-      </div>
     </div>
   );
 }

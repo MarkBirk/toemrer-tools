@@ -94,12 +94,8 @@ export function updateAdminSettings(partial) {
 }
 
 export function resetAdminSettings() {
-  const current = getAdminSettings();
-  // Behold password ved nulstilling
-  const password = current.password;
-  const reset = password ? { password } : {};
-  localStorage.setItem(ADMIN_KEY, JSON.stringify(reset));
-  return reset;
+  localStorage.setItem(ADMIN_KEY, '{}');
+  return {};
 }
 
 export function getAdminSeoOverride(path) {
