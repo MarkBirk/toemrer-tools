@@ -1,0 +1,21 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm install)",
+      "Bash(npx vite build)",
+      "mcp__Claude_Preview__preview_start",
+      "Bash(npx which vite)",
+      "Bash(npm bin)",
+      "Bash(where npm)",
+      "Bash(for f in src/tools/Taghaeldning.jsx src/tools/SpaerLaengde.jsx src/tools/Materialeberegner.jsx src/tools/SkruerBeslag.jsx src/tools/MaalKonverter.jsx src/tools/Tilbudsberegner.jsx src/tools/MaterialelisteGenerator.jsx src/tools/Standardmaal.jsx src/tools/ByggeNoter.jsx src/tools/VaegtBeregner.jsx)",
+      "Bash(do python3 -c \":*)",
+      "Bash(done)",
+      "Bash(node -e \":*)",
+      "Bash(node fix-unicode.cjs)",
+      "Bash(npm install react-helmet-async)",
+      "Bash(npm run build)",
+      "Bash(git init)",
+      "Bash(git add -A)"
+    ]
+  }
+}
