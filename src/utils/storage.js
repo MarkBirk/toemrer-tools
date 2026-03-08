@@ -76,3 +76,44 @@ export function clearMaterialList() {
 export function updateMaterialList(list) {
   localStorage.setItem(MATLIST_KEY, JSON.stringify(list));
 }
+
+// ─── Admin Settings ─────────────────────────────────────────
+const ADMIN_KEY = 'toemrer_admin_settings';
+
+export function getAdminSettings() {
+  try {
+    return JSON.parse(localStorage.getItem(ADMIN_KEY) || '{}');
+  } catch { return {}; }
+}
+
+export function updateAdminSettings(partial) {
+  const current = getAdminSettings();
+  const updated = { ...current, ...partial, lastUpdated: new Date().toISOString() };
+  localStorage.setItem(ADMIN_KEY, JSON.stringify(updated));
+  return updated;
+}
+
+export function resetAdminSettings() {
+  const current = getAdminSettings();
+  // Behold password ved nulstilling
+  const password = current.password;
+  const reset = password ? { password } : {};
+  localStorage.setItem(ADMIN_KEY, JSON.stringify(reset));
+  return reset;
+}
+
+export function getAdminSeoOverride(path) {
+  const settings = getAdminSettings();
+  if (!settings.seoOverrides) return null;
+  return settings.seoOverrides[path] || null;
+}
+
+export function getAdminSiteName() {
+  const settings = getAdminSettings();
+  return settings.siteName || '';
+}
+
+export function getAdminBaseUrl() {
+  const settings = getAdminSettings();
+  return settings.baseUrl || '';
+}

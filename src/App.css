@@ -802,6 +802,117 @@ table th {
   body { background: #fff; }
 }
 
+/* === Admin Panel === */
+.admin-panel { max-width: 720px; margin: 0 auto; }
+
+.admin-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+.admin-header h2 { margin: 0; }
+
+.admin-message {
+  padding: 0.75rem 1rem;
+  border-radius: var(--radius-sm);
+  margin-bottom: 1rem;
+  font-weight: 500;
+  animation: fadeIn 0.2s ease;
+}
+.admin-message-success {
+  background: #D1FAE5;
+  color: #065F46;
+  border: 1px solid #A7F3D0;
+}
+.admin-message-error {
+  background: #FEE2E2;
+  color: #991B1B;
+  border: 1px solid #FECACA;
+}
+
+.admin-tab-content { margin-top: 1rem; }
+
+.admin-tab-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+.admin-tab-header p { margin: 0; }
+
+/* SEO cards */
+.admin-seo-card {
+  margin-bottom: 0.75rem;
+  border-left: 3px solid var(--border);
+  transition: border-color 0.2s;
+}
+.admin-seo-card.admin-seo-active {
+  border-left-color: var(--primary);
+}
+.admin-seo-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+  flex-wrap: wrap;
+}
+.admin-seo-path {
+  font-size: 0.8rem;
+  font-family: monospace;
+  background: var(--bg);
+  padding: 0.15rem 0.5rem;
+  border-radius: 4px;
+}
+.admin-seo-header .btn { margin-left: auto; }
+
+.admin-seo-card .form-group { margin-bottom: 0.5rem; }
+.admin-seo-card .form-group label { font-size: 0.8rem; margin-bottom: 0.2rem; }
+
+.admin-textarea-sm {
+  resize: vertical;
+  min-height: 3rem;
+  font-size: 0.9rem;
+}
+
+/* Scripts */
+.admin-textarea-code {
+  resize: vertical;
+  min-height: 6rem;
+  font-family: 'Courier New', Courier, monospace;
+  font-size: 0.85rem;
+  line-height: 1.5;
+  white-space: pre;
+  tab-size: 2;
+}
+
+/* Settings */
+.admin-data-buttons {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  margin-bottom: 1rem;
+}
+.admin-divider {
+  border: none;
+  border-top: 1px solid var(--border);
+  margin: 1rem 0;
+}
+
+/* Login card */
+.admin-login-card {
+  max-width: 400px;
+  margin: 2rem auto;
+}
+.admin-login-card h2 { margin-top: 0; }
+
+.admin-error {
+  color: var(--danger);
+  font-size: 0.9rem;
+  margin: 0.25rem 0 0.75rem;
+}
+
 /* === Accessibility === */
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {

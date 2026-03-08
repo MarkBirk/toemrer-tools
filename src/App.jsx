@@ -2,9 +2,11 @@ import { Routes, Route } from 'react-router-dom';
 import { useState } from 'react';
 import Layout from './components/Layout';
 import SEO from './components/SEO';
+import ScriptInjector from './components/ScriptInjector';
 import ToolCard from './components/ToolCard';
 import SavedItems from './components/SavedItems';
 import MaterialListCollector from './components/MaterialListCollector';
+import AdminPanel from './components/AdminPanel';
 
 import Materialeberegner from './tools/Materialeberegner';
 import Taghaeldning from './tools/Taghaeldning';
@@ -137,10 +139,12 @@ function ToolRoute({ component: Component, seo }) {
 export default function App() {
   return (
     <Layout>
+      <ScriptInjector />
       <Routes>
         <Route path="/" element={<Home />} />
         <Route path="/gemte" element={<GemteSide />} />
         <Route path="/samlet-liste" element={<SamletListeWrapper />} />
+        <Route path="/admin" element={<AdminPanel />} />
         {tools.map(t => (
           <Route
             key={t.path}
