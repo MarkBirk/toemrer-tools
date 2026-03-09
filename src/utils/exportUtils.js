@@ -67,7 +67,7 @@ export function generatePDF({ title, date, inputs, results, materialList, notes 
         m.notes || m.noter || ''
       ]),
       styles: { fontSize: 9, cellPadding: 3 },
-      headStyles: { fillColor: [245, 158, 11] },
+      headStyles: { fillColor: [140, 104, 64] },
       margin: { left: 14, right: 14 }
     });
     y = doc.lastAutoTable.finalY + 8;
@@ -188,7 +188,7 @@ export function generateEmailHTML({ title, inputs, results, materialList, notes 
   }
   if (materialList && materialList.length) {
     html += '<h3>Materialeliste</h3><table border="1" cellpadding="4" cellspacing="0" style="border-collapse:collapse">';
-    html += '<tr style="background:#F59E0B;color:#fff"><th>Materiale</th><th>Mængde</th><th>Enhed</th><th>Noter</th></tr>';
+    html += '<tr style="background:#8C6840;color:#fff"><th>Materiale</th><th>Mængde</th><th>Enhed</th><th>Noter</th></tr>';
     for (const m of materialList) {
       html += `<tr><td>${m.name || m.materiale || ''}</td><td>${m.amount || m.antal || ''}</td><td>${m.unit || m.enhed || ''}</td><td>${m.notes || m.noter || ''}</td></tr>`;
     }
