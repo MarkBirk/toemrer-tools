@@ -7,6 +7,8 @@ import ToolCard from './components/ToolCard';
 import SavedItems from './components/SavedItems';
 import MaterialListCollector from './components/MaterialListCollector';
 import AdminPanel from './components/AdminPanel';
+import FAQ from './components/FAQ';
+import { homeFaq, toolFaqs } from './data/faqData';
 
 import Materialeberegner from './tools/Materialeberegner';
 import Taghaeldning from './tools/Taghaeldning';
@@ -70,6 +72,10 @@ function Home() {
         ))}
       </div>
       {filtered.length === 0 && <p className="text-muted text-center">Ingen værktøjer matcher søgningen.</p>}
+      <FAQ items={homeFaq} />
+      <div className="warning-box">
+        <strong>Bemærk:</strong> Alle beregninger er vejledende og erstatter ikke professionel rådgivning. Tjek altid gældende bygningsreglement og konsultér en fagperson ved tvivl.
+      </div>
     </div>
   );
 }
@@ -93,12 +99,14 @@ function SamletListeWrapper() {
   );
 }
 
-// Wrapper to add SEO to each tool route
-function ToolRoute({ component: Component, seo }) {
+// Wrapper to add SEO + FAQ to each tool route
+function ToolRoute({ component: Component, seo, toolPath }) {
+  const faq = toolFaqs[toolPath];
   return (
     <>
       <SEO title={seo.title} description={seo.description} path={seo.path} />
       <Component />
+      {faq && <div className="tool-page"><FAQ items={faq} /></div>}
     </>
   );
 }
@@ -118,6 +126,7 @@ export default function App() {
             path={`/${t.path}`}
             element={
               <ToolRoute
+                toolPath={t.path}
                 component={{
                   materialeberegner: Materialeberegner,
                   taghaeldning: Taghaeldning,

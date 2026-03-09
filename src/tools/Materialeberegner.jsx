@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import ResultActions from '../components/ResultActions';
 import { parseShareFromURL } from '../utils/shareLink';
+import { getCalcDefaults } from '../utils/calcDefaults';
 
 const TABS = [
   { key: 'terrasse', label: 'Terrasse' },
@@ -9,33 +10,36 @@ const TABS = [
 ];
 
 function defaultTerrasse() {
+  const d = getCalcDefaults().terrasse;
   return {
     length: '',
     width: '',
-    boardWidth: '145',
-    boardGap: '5',
-    joistSpacing: '600',
-    waste: '10',
+    boardWidth: String(d.boardWidth),
+    boardGap: String(d.boardGap),
+    joistSpacing: String(d.joistSpacing),
+    waste: String(d.waste),
   };
 }
 
 function defaultVaeg() {
+  const d = getCalcDefaults().vaeg;
   return {
     wallLength: '',
-    wallHeight: '2.4',
-    studSpacing: '600',
+    wallHeight: String(d.wallHeight),
+    studSpacing: String(d.studSpacing),
     platesPerSide: '1',
-    plateWidth: '1200',
-    plateHeight: '2400',
+    plateWidth: String(d.plateWidth),
+    plateHeight: String(d.plateHeight),
   };
 }
 
 function defaultIsolering() {
+  const d = getCalcDefaults().isolering;
   return {
     area: '',
     thickness: '',
-    packageCoverage: '3.42',
-    waste: '5',
+    packageCoverage: String(d.packageCoverage),
+    waste: String(d.waste),
   };
 }
 
@@ -129,8 +133,9 @@ export default function Materialeberegner() {
     const platesOneSide = Math.ceil(wallArea / plateArea);
     const totalPlates = platesOneSide * pps;
 
-    // Screws: ~15 per m2 for gips
-    const screws = Math.ceil(wallArea * pps * 15);
+    // Screws: ~15 per m2 for gips (configurable via admin)
+    const spm2 = getCalcDefaults().vaeg.screwsPerM2;
+    const screws = Math.ceil(wallArea * pps * spm2);
 
     const materialList = [
       { name: 'Reglar', quantity: totalStuds, unit: 'stk', length: `${wh} m` },

@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
+import Footer from './Footer';
 
 const navItems = [
   { path: '/', label: 'Hjem', icon: '⌂' },
@@ -50,6 +51,7 @@ export default function Layout({ children }) {
       </nav>
 
       <main className="app-main">{children}</main>
+      <Footer />
     </div>
   );
 }

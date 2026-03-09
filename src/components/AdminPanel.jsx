@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { getAdminSettings, updateAdminSettings, resetAdminSettings } from '../utils/storage';
+import { CALC_DEFAULTS, getCalcDefaults } from '../utils/calcDefaults';
 
 // Admin-adgangskode sættes som env-variabel i Netlify
 const ADMIN_PASSWORD = import.meta.env.VITE_ADMIN_PASSWORD || '';
@@ -86,12 +87,16 @@ export default function AdminPanel() {
 
       <div className="tab-bar">
         <button className={`tab-btn ${tab === 'seo' ? 'active' : ''}`} onClick={() => setTab('seo')}>SEO</button>
+        <button className={`tab-btn ${tab === 'calc' ? 'active' : ''}`} onClick={() => setTab('calc')}>Beregninger</button>
         <button className={`tab-btn ${tab === 'scripts' ? 'active' : ''}`} onClick={() => setTab('scripts')}>Scripts</button>
         <button className={`tab-btn ${tab === 'settings' ? 'active' : ''}`} onClick={() => setTab('settings')}>Indstillinger</button>
       </div>
 
       {tab === 'seo' && (
         <SeoTab settings={settings} setSettings={setSettings} showMessage={showMessage} />
+      )}
+      {tab === 'calc' && (
+        <CalcDefaultsTab settings={settings} setSettings={setSettings} showMessage={showMessage} />
       )}
       {tab === 'scripts' && (
         <ScriptsTab settings={settings} setSettings={setSettings} showMessage={showMessage} />
@@ -433,6 +438,181 @@ function SettingsTab({ settings, setSettings, showMessage, importRef }) {
           Sidst opdateret: {new Date(settings.lastUpdated).toLocaleString('da-DK')}
         </p>
       )}
+    </div>
+  );
+}
+
+// ─── Calc Defaults Tab ──────────────────────────────
+const CALC_SECTIONS = [
+  {
+    key: 'tilbud',
+    title: 'Økonomi (Tilbudsberegner)',
+    fields: [
+      { key: 'timepris', label: 'Standard timepris', unit: 'kr.' },
+      { key: 'avancePct', label: 'Standard avance', unit: '%' },
+      { key: 'momsPct', label: 'Moms', unit: '%' },
+    ],
+  },
+  {
+    key: 'terrasse',
+    title: 'Terrasse (Materialeberegner)',
+    fields: [
+      { key: 'boardWidth', label: 'Bræddebredde', unit: 'mm' },
+      { key: 'boardGap', label: 'Mellemrum', unit: 'mm' },
+      { key: 'joistSpacing', label: 'Strøafstand (c/c)', unit: 'mm' },
+      { key: 'waste', label: 'Spild', unit: '%' },
+    ],
+  },
+  {
+    key: 'vaeg',
+    title: 'Væg / Reglar',
+    fields: [
+      { key: 'wallHeight', label: 'Standard væghøjde', unit: 'm' },
+      { key: 'studSpacing', label: 'Regelafstand (c/c)', unit: 'mm' },
+      { key: 'plateWidth', label: 'Pladebredde', unit: 'mm' },
+      { key: 'plateHeight', label: 'Pladehøjde', unit: 'mm' },
+      { key: 'screwsPerM2', label: 'Gipsskruer pr. m²', unit: 'stk' },
+    ],
+  },
+  {
+    key: 'isolering',
+    title: 'Isolering',
+    fields: [
+      { key: 'packageCoverage', label: 'Pakkedækning', unit: 'm²/pk' },
+      { key: 'waste', label: 'Spild', unit: '%' },
+    ],
+  },
+  {
+    key: 'skruer',
+    title: 'Skruer / Beslag',
+    fields: [
+      { key: 'boardWidth', label: 'Bræddebredde (terrasse)', unit: 'mm' },
+      { key: 'joistSpacing', label: 'Bjælkeafstand', unit: 'mm' },
+      { key: 'screwsPerCrossing', label: 'Skruer pr. krydsning', unit: 'stk' },
+      { key: 'boardGap', label: 'Mellemrum', unit: 'mm' },
+      { key: 'screwsPerM2', label: 'Gipsskruer pr. m²', unit: 'stk' },
+    ],
+  },
+  {
+    key: 'skaereplan',
+    title: 'Skæreplan',
+    fields: [
+      { key: 'raaLaengde', label: 'Standard rålængde', unit: 'mm' },
+      { key: 'snitBredde', label: 'Snitbredde (savsnit)', unit: 'mm' },
+    ],
+  },
+];
+
+function CalcDefaultsTab({ settings, setSettings, showMessage }) {
+  const overrides = settings.calcDefaults || {};
+
+  const handleChange = (section, field, value) => {
+    const numVal = value === '' ? undefined : Number(value);
+    const newSection = { ...(overrides[section] || {}) };
+    if (numVal === undefined || isNaN(numVal)) {
+      delete newSection[field];
+    } else {
+      newSection[field] = numVal;
+    }
+    // Clean up empty sections
+    const newOverrides = { ...overrides, [section]: newSection };
+    if (Object.keys(newSection).length === 0) delete newOverrides[section];
+    const updated = updateAdminSettings({ calcDefaults: newOverrides });
+    setSettings(updated);
+  };
+
+  const handleResetSection = (sectionKey) => {
+    const newOverrides = { ...overrides };
+    delete newOverrides[sectionKey];
+    const updated = updateAdminSettings({ calcDefaults: newOverrides });
+    setSettings(updated);
+    showMessage(`Standardværdier nulstillet for "${CALC_SECTIONS.find(s => s.key === sectionKey)?.title || sectionKey}".`);
+  };
+
+  const handleResetAll = () => {
+    if (confirm('Nulstil alle beregningsindstillinger til standardværdier?')) {
+      const updated = updateAdminSettings({ calcDefaults: {} });
+      setSettings(updated);
+      showMessage('Alle beregningsindstillinger nulstillet.');
+    }
+  };
+
+  const hasAnyOverride = Object.keys(overrides).some(k => Object.keys(overrides[k] || {}).length > 0);
+
+  return (
+    <div className="admin-tab-content">
+      <div className="admin-tab-header">
+        <p className="text-muted">Ændr standardværdier for beregningsværktøjerne. Tomme felter bruger de indbyggede standarder.</p>
+        {hasAnyOverride && (
+          <button className="btn btn-sm btn-danger" onClick={handleResetAll}>
+            Nulstil alle
+          </button>
+        )}
+      </div>
+
+      {CALC_SECTIONS.map(section => {
+        const sectionOverrides = overrides[section.key] || {};
+        const sectionDefaults = CALC_DEFAULTS[section.key] || {};
+        const hasOverride = Object.keys(sectionOverrides).length > 0;
+
+        return (
+          <div key={section.key} className={`card ${hasOverride ? 'admin-seo-active' : ''}`}>
+            <div className="admin-seo-header">
+              <h3 style={{ margin: 0 }}>{section.title}</h3>
+              {hasOverride && (
+                <button className="btn btn-xs btn-secondary" onClick={() => handleResetSection(section.key)}>
+                  Nulstil
+                </button>
+              )}
+            </div>
+            {section.fields.map(field => (
+              <div className="form-group" key={field.key}>
+                <label>{field.label}</label>
+                <div className="input-with-suffix">
+                  <input
+                    type="number"
+                    className="input"
+                    value={sectionOverrides[field.key] ?? ''}
+                    onChange={e => handleChange(section.key, field.key, e.target.value)}
+                    placeholder={String(sectionDefaults[field.key])}
+                    step="any"
+                  />
+                  <span className="input-suffix">{field.unit}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        );
+      })}
+
+      {/* Densiteter section */}
+      <div className={`card ${(overrides.densiteter && Object.keys(overrides.densiteter).length > 0) ? 'admin-seo-active' : ''}`}>
+        <div className="admin-seo-header">
+          <h3 style={{ margin: 0 }}>Densiteter (Vægtberegner)</h3>
+          {overrides.densiteter && Object.keys(overrides.densiteter).length > 0 && (
+            <button className="btn btn-xs btn-secondary" onClick={() => handleResetSection('densiteter')}>
+              Nulstil
+            </button>
+          )}
+        </div>
+        <p className="text-muted" style={{ marginBottom: '0.75rem' }}>Gennemsnitlige densiteter brugt til vægtberegning.</p>
+        {Object.entries(CALC_DEFAULTS.densiteter).map(([material, defaultDensity]) => (
+          <div className="form-group" key={material}>
+            <label>{material}</label>
+            <div className="input-with-suffix">
+              <input
+                type="number"
+                className="input"
+                value={(overrides.densiteter || {})[material] ?? ''}
+                onChange={e => handleChange('densiteter', material, e.target.value)}
+                placeholder={String(defaultDensity)}
+                step="any"
+              />
+              <span className="input-suffix">kg/m³</span>
+            </div>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }

@@ -1,13 +1,15 @@
 import { useState, useEffect } from 'react';
 import ResultActions from '../components/ResultActions';
 import { parseShareFromURL } from '../utils/shareLink';
+import { getCalcDefaults } from '../utils/calcDefaults';
 
 export default function Tilbudsberegner() {
+  const d = getCalcDefaults().tilbud;
   const [materialomkostning, setMaterialomkostning] = useState('');
   const [timer, setTimer] = useState('');
-  const [timepris, setTimepris] = useState('450');
-  const [avancePct, setAvancePct] = useState('15');
-  const [momsPct, setMomsPct] = useState('25');
+  const [timepris, setTimepris] = useState(String(d.timepris));
+  const [avancePct, setAvancePct] = useState(String(d.avancePct));
+  const [momsPct, setMomsPct] = useState(String(d.momsPct));
   const [noter, setNoter] = useState('');
   const [results, setResults] = useState(null);
 

@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import ResultActions from '../components/ResultActions';
 import { parseShareFromURL } from '../utils/shareLink';
+import { getCalcDefaults } from '../utils/calcDefaults';
 
 const COLORS = [
   '#4a90d9', '#e8734a', '#5cb85c', '#f0ad4e', '#d9534f',
@@ -9,8 +10,9 @@ const COLORS = [
 ];
 
 export default function Skaereplan() {
-  const [raaLaengde, setRaaLaengde] = useState('4800');
-  const [snitBredde, setSnitBredde] = useState('3');
+  const d = getCalcDefaults().skaereplan;
+  const [raaLaengde, setRaaLaengde] = useState(String(d.raaLaengde));
+  const [snitBredde, setSnitBredde] = useState(String(d.snitBredde));
   const [stykLaengde, setStykLaengde] = useState('');
   const [stykAntal, setStykAntal] = useState('1');
   const [stykker, setStykker] = useState([]);

@@ -1,18 +1,7 @@
 import { useState, useEffect } from 'react';
 import ResultActions from '../components/ResultActions';
 import { parseShareFromURL } from '../utils/shareLink';
-
-const DENSITIES = {
-  'Fyrretræ': 500,
-  'Egetræ': 700,
-  'Gran': 450,
-  'MDF': 750,
-  'Krydsfiner': 600,
-  'OSB': 620,
-  'Gips': 850,
-  'Beton': 2400,
-  'Stål': 7850,
-};
+import { getCalcDefaults } from '../utils/calcDefaults';
 
 // Materials that use plate dimensions (width, height, thickness)
 const PLATE_MATERIALS = ['MDF', 'Krydsfiner', 'OSB', 'Gips'];
@@ -27,6 +16,7 @@ function getMaterialCategory(material) {
 }
 
 export default function VaegtBeregner() {
+  const DENSITIES = getCalcDefaults().densiteter;
   const [material, setMaterial] = useState('Fyrretræ');
   const [width, setWidth] = useState('');
   const [height, setHeight] = useState('');

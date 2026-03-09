@@ -24,3 +24,6 @@ npm-debug.log*
 
 # Temp files
 fix-unicode.cjs
+
+# Local Netlify folder
+.netlify

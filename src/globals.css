@@ -1,0 +1,217 @@
+/* ═══════════════════════════════════════════════
+   TømrerTools — Global Styles & Design Tokens
+   Fonts: DM Serif Display + DM Sans (Google Fonts)
+   ═══════════════════════════════════════════════ */
+
+/* ── 1. Google Fonts ── */
+@import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,400&display=swap');
+
+/* ── 2. CSS Custom Properties ── */
+:root {
+  /* Backgrounds */
+  --bg-base:    #F8F4EE;
+  --bg-subtle:  #F1EBE0;
+  --bg-muted:   #E8DFCF;
+  --bg-inverse: #1C1710;
+
+  /* Tekst */
+  --text-primary:   #1C1710;
+  --text-secondary: #6B5F52;
+  --text-muted:     #A6988A;
+  --text-inverse:   #F8F4EE;
+  --text-accent:    #7A5C3A;
+
+  /* Accent */
+  --accent:         #8C6840;
+  --accent-hover:   #755534;
+  --accent-subtle:  #EDE0CE;
+  --accent-muted:   #C4A882;
+
+  /* Borders */
+  --border-light:   #E4DAC9;
+  --border:         #CFC3B0;
+  --border-strong:  #A89278;
+
+  /* Status */
+  --success: #4A7C59;
+  --warning: #A0763A;
+  --error:   #8C3A3A;
+
+  /* Typography */
+  --font-heading: 'DM Serif Display', Georgia, serif;
+  --font-body:    'DM Sans', system-ui, sans-serif;
+  --font-mono:    'JetBrains Mono', 'Courier New', monospace;
+
+  /* Spacing */
+  --space-1:  4px;
+  --space-2:  8px;
+  --space-3:  12px;
+  --space-4:  16px;
+  --space-5:  20px;
+  --space-6:  24px;
+  --space-8:  32px;
+  --space-10: 40px;
+  --space-12: 48px;
+  --space-16: 64px;
+  --space-20: 80px;
+
+  /* Radii */
+  --radius-sm:   4px;
+  --radius-md:   8px;
+  --radius-lg:   12px;
+  --radius-xl:   16px;
+  --radius-full: 9999px;
+
+  /* Shadows */
+  --shadow-sm: 0 1px 3px rgba(28,23,16,0.08);
+  --shadow-md: 0 4px 12px rgba(28,23,16,0.08);
+  --shadow-lg: 0 8px 32px rgba(28,23,16,0.10);
+  --shadow-xl: 0 16px 48px rgba(28,23,16,0.12);
+
+  /* Transitions */
+  --transition: 150ms ease;
+  --transition-md: 250ms ease;
+}
+
+/* ── 3. Reset & Base ── */
+*, *::before, *::after { box-sizing: border-box; }
+
+body {
+  background-color: var(--bg-base);
+  color: var(--text-primary);
+  font-family: var(--font-body);
+  font-size: 15px;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* ── 4. Typography ── */
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-heading);
+  font-weight: 400; /* DM Serif er smukkest i regular */
+  line-height: 1.2;
+  color: var(--text-primary);
+  letter-spacing: -0.01em;
+}
+
+h1 { font-size: clamp(32px, 5vw, 56px); }
+h2 { font-size: clamp(26px, 4vw, 40px); }
+h3 { font-size: clamp(20px, 3vw, 28px); }
+h4 { font-size: 20px; }
+h5 { font-size: 17px; font-family: var(--font-body); font-weight: 600; }
+h6 { font-size: 14px; font-family: var(--font-body); font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-secondary); }
+
+p { margin: 0 0 1em; color: var(--text-secondary); line-height: 1.7; }
+a { color: var(--accent); text-decoration: none; transition: color var(--transition); }
+a:hover { color: var(--accent-hover); }
+
+.label {
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+/* ── 5. Buttons ── */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: 10px 20px;
+  font-family: var(--font-body);
+  font-size: 14px;
+  font-weight: 500;
+  border-radius: var(--radius-md);
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: all var(--transition);
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.btn-primary {
+  background: var(--accent);
+  color: #fff;
+  border-color: var(--accent);
+}
+.btn-primary:hover {
+  background: var(--accent-hover);
+  border-color: var(--accent-hover);
+}
+
+.btn-secondary {
+  background: transparent;
+  color: var(--text-primary);
+  border-color: var(--border);
+}
+.btn-secondary:hover {
+  background: var(--bg-subtle);
+  border-color: var(--border-strong);
+}
+
+.btn-ghost {
+  background: transparent;
+  color: var(--accent);
+  border-color: transparent;
+}
+.btn-ghost:hover {
+  background: var(--accent-subtle);
+}
+
+/* ── 6. Form elements ── */
+input, select, textarea {
+  font-family: var(--font-body);
+  font-size: 15px;
+  color: var(--text-primary);
+  background: var(--bg-base);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 10px 14px;
+  width: 100%;
+  transition: border-color var(--transition), box-shadow var(--transition);
+  outline: none;
+}
+
+input:focus, select:focus, textarea:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(140,104,64,0.12);
+}
+
+label {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  display: block;
+  margin-bottom: var(--space-2);
+}
+
+/* ── 7. Cards ── */
+.card {
+  background: var(--bg-base);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-lg);
+  padding: var(--space-6);
+  box-shadow: var(--shadow-sm);
+}
+
+.card-subtle {
+  background: var(--bg-subtle);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-lg);
+  padding: var(--space-6);
+}
+
+/* ── 8. Dividers ── */
+hr {
+  border: none;
+  border-top: 1px solid var(--border-light);
+  margin: var(--space-8) 0;
+}
+
+/* ── 9. Scrollbar ── */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: var(--bg-subtle); }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: var(--radius-full); }
+::-webkit-scrollbar-thumb:hover { background: var(--border-strong); }

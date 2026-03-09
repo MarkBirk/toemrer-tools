@@ -1,19 +1,21 @@
 import { useState, useEffect } from 'react';
 import ResultActions from '../components/ResultActions';
 import { parseShareFromURL } from '../utils/shareLink';
+import { getCalcDefaults } from '../utils/calcDefaults';
 
 export default function SkruerBeslag() {
+  const d = getCalcDefaults().skruer;
   const [activeTab, setActiveTab] = useState('terrasse');
 
   // Terrasse inputs
   const [terrasseArea, setTerrasseArea] = useState('');
-  const [boardWidth, setBoardWidth] = useState('145');
-  const [joistSpacing, setJoistSpacing] = useState('600');
-  const [screwsPerCrossing, setScrewsPerCrossing] = useState('2');
+  const [boardWidth, setBoardWidth] = useState(String(d.boardWidth));
+  const [joistSpacing, setJoistSpacing] = useState(String(d.joistSpacing));
+  const [screwsPerCrossing, setScrewsPerCrossing] = useState(String(d.screwsPerCrossing));
 
   // Gips inputs
   const [gipsArea, setGipsArea] = useState('');
-  const [screwsPerM2, setScrewsPerM2] = useState('15');
+  const [screwsPerM2, setScrewsPerM2] = useState(String(d.screwsPerM2));
   const [layers, setLayers] = useState('1');
 
   const [results, setResults] = useState(null);
@@ -42,7 +44,7 @@ export default function SkruerBeslag() {
 
     if (!area || area <= 0 || !bw || bw <= 0 || !js || js <= 0 || !spc || spc <= 0) return;
 
-    const boardsPerMWidth = 1000 / (bw + 5);
+    const boardsPerMWidth = 1000 / (bw + d.boardGap);
     const joistCrossingsPerMLength = 1000 / js;
     const totalScrews = Math.ceil(boardsPerMWidth * joistCrossingsPerMLength * spc * area);
 
