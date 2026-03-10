@@ -98,8 +98,8 @@ export default function Footer() {
             &copy; {new Date().getFullYear()} TømrerTools — Bygget med omtanke for danske håndværkere
           </p>
           <div className="footer-bottom-links">
-            <a href="#" className="footer-bottom-link">Privatlivspolitik</a>
-            <a href="#" className="footer-bottom-link">Kontakt</a>
+            <Link to="/privatlivspolitik" className="footer-bottom-link">Privatlivspolitik</Link>
+            <Link to="/kontakt" className="footer-bottom-link">Kontakt</Link>
           </div>
         </div>
       </div>

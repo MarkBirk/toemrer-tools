@@ -80,6 +80,58 @@ function Home() {
   );
 }
 
+function Privatlivspolitik() {
+  return (
+    <div className="tool-page">
+      <SEO title="Privatlivspolitik" description="Læs om hvordan Tømrer Tools håndterer dine data." path="/privatlivspolitik" />
+      <h1>Privatlivspolitik</h1>
+      <div className="card" style={{ lineHeight: 1.7 }}>
+        <h2>Dataindsamling</h2>
+        <p>Tømrer Tools indsamler <strong>ingen personlige oplysninger</strong>. Vi bruger ikke cookies, tracking eller analyse-værktøjer, medmindre det er aktiveret af siteadministratoren via admin-panelet (f.eks. Google Analytics).</p>
+
+        <h2>Lokal lagring</h2>
+        <p>Alle dine beregninger, materialelister og noter gemmes udelukkende i din browsers <strong>localStorage</strong>. Data forlader aldrig din enhed og sendes ikke til nogen server.</p>
+
+        <h2>Tredjeparter</h2>
+        <p>Vi bruger Google Fonts til typografi. Google kan registrere en sideanmodning når skrifttyper indlæses. Læs <a href="https://policies.google.com/privacy" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent)' }}>Googles privatlivspolitik</a> for detaljer.</p>
+
+        <h2>E-mail-funktion</h2>
+        <p>Hvis e-mail-funktionen er aktiveret, sendes beregningsdata kun til den adresse du selv angiver. Vi gemmer ikke e-mailadresser.</p>
+
+        <h2>Kontakt</h2>
+        <p>Har du spørgsmål om privatlivspolitikken? Kontakt os via <a href="mailto:kontakt@toemrertools.dk" style={{ color: 'var(--accent)' }}>kontakt@toemrertools.dk</a>.</p>
+
+        <p style={{ marginTop: '2rem', color: 'var(--text-muted)', fontSize: '0.85rem' }}>Sidst opdateret: marts 2026</p>
+      </div>
+    </div>
+  );
+}
+
+function Kontakt() {
+  return (
+    <div className="tool-page">
+      <SEO title="Kontakt" description="Kontakt Tømrer Tools med spørgsmål, feedback eller fejlmeldinger." path="/kontakt" />
+      <h1>Kontakt</h1>
+      <div className="card" style={{ lineHeight: 1.7 }}>
+        <p>Har du spørgsmål, feedback eller har du fundet en fejl? Du er velkommen til at kontakte os.</p>
+
+        <div style={{ margin: '1.5rem 0' }}>
+          <div className="result-row">
+            <span>E-mail</span>
+            <strong><a href="mailto:kontakt@toemrertools.dk" style={{ color: 'var(--accent)' }}>kontakt@toemrertools.dk</a></strong>
+          </div>
+        </div>
+
+        <h2>Feedback</h2>
+        <p>Vi udvikler løbende nye værktøjer og forbedrer de eksisterende. Har du et ønske til et nyt beregningsværktøj eller en funktion, så skriv endelig.</p>
+
+        <h2>Fejl og problemer</h2>
+        <p>Oplever du en fejl i en beregning eller noget der ikke virker som forventet, vil vi meget gerne høre om det, så vi kan rette det hurtigst muligt.</p>
+      </div>
+    </div>
+  );
+}
+
 function GemteSide() {
   return (
     <div className="tool-page">
@@ -119,6 +171,8 @@ export default function App() {
         <Route path="/" element={<Home />} />
         <Route path="/gemte" element={<GemteSide />} />
         <Route path="/samlet-liste" element={<SamletListeWrapper />} />
+        <Route path="/privatlivspolitik" element={<Privatlivspolitik />} />
+        <Route path="/kontakt" element={<Kontakt />} />
         <Route path="/admin" element={<AdminPanel />} />
         {tools.map(t => (
           <Route
