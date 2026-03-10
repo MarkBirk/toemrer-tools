@@ -145,18 +145,23 @@ export default function MaalKonverter() {
     return parseFloat(n.toFixed(6));
   }
 
-  const inputData = {
-    convType,
-    valueA,
-    valueB,
-    plateWidth: isPlader ? plateWidth : undefined,
-    plateHeight: isPlader ? plateHeight : undefined,
-  };
+  const inputData = isPlader
+    ? {
+        'Type': 'm² → antal plader',
+        'Areal': `${valueA} m²`,
+        'Pladebredde': `${plateWidth} mm`,
+        'Pladehøjde': `${plateHeight} mm`,
+      }
+    : {
+        'Type': conv?.label || convType,
+        [conv?.unitA || 'Værdi']: valueA,
+        [conv?.unitB || 'Resultat']: valueB,
+      };
 
   const resultData = results
     ? {
-        konvertering: results.text,
-        detaljer: results.details || null,
+        'Konvertering': results.text,
+        ...(results.details ? { 'Detaljer': results.details } : {}),
       }
     : null;
 

@@ -100,23 +100,22 @@ export default function Tilbudsberegner() {
   }
 
   const inputData = {
-    materialomkostning,
-    timer,
-    timepris,
-    avancePct,
-    momsPct,
-    noter,
+    'Materialomkostning': `${materialomkostning || 0} kr.`,
+    'Timer': timer || '0',
+    'Timepris': `${timepris} kr.`,
+    'Avance': `${avancePct}%`,
+    'Moms': `${momsPct}%`,
   };
 
   const resultData = results
     ? {
-        materialer: `${formatKr(results.materialer)} kr.`,
-        arbejdsloen: `${formatKr(results.arbejdsloen)} kr.`,
-        subtotal: `${formatKr(results.subtotal)} kr.`,
-        avance: `${formatKr(results.avance)} kr. (${results.avancePct}%)`,
-        totalExMoms: `${formatKr(results.totalExMoms)} kr.`,
-        moms: `${formatKr(results.moms)} kr. (${results.momsPct}%)`,
-        totalInklMoms: `${formatKr(results.totalInklMoms)} kr.`,
+        'Materialer': `${formatKr(results.materialer)} kr.`,
+        'Arbejdsløn': `${formatKr(results.arbejdsloen)} kr.`,
+        'Subtotal': `${formatKr(results.subtotal)} kr.`,
+        'Avance': `${formatKr(results.avance)} kr. (${results.avancePct}%)`,
+        'Total ex. moms': `${formatKr(results.totalExMoms)} kr.`,
+        'Moms': `${formatKr(results.moms)} kr. (${results.momsPct}%)`,
+        'Total inkl. moms': `${formatKr(results.totalInklMoms)} kr.`,
       }
     : null;
 

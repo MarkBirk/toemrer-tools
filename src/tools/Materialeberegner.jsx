@@ -188,9 +188,31 @@ export default function Materialeberegner() {
   }, [tab, terrasseResults, vaegResults, isoleringResults]);
 
   const currentInputs = useMemo(() => {
-    if (tab === 'terrasse') return { tab: 'terrasse', ...terrasse };
-    if (tab === 'vaeg') return { tab: 'vaeg', ...vaeg };
-    if (tab === 'isolering') return { tab: 'isolering', ...isolering };
+    if (tab === 'terrasse') return {
+      'Type': 'Terrasse',
+      'Længde': `${terrasse.length} m`,
+      'Bredde': `${terrasse.width} m`,
+      'Bræddebredde': `${terrasse.boardWidth} mm`,
+      'Mellemrum': `${terrasse.boardGap} mm`,
+      'Strøafstand': `${terrasse.joistSpacing} mm`,
+      'Spild': `${terrasse.waste}%`,
+    };
+    if (tab === 'vaeg') return {
+      'Type': 'Væg / Reglar',
+      'Væglængde': `${vaeg.wallLength} m`,
+      'Væghøjde': `${vaeg.wallHeight} m`,
+      'Regelafstand': `${vaeg.studSpacing} mm`,
+      'Plader pr. side': vaeg.platesPerSide,
+      'Pladebredde': `${vaeg.plateWidth} mm`,
+      'Pladehøjde': `${vaeg.plateHeight} mm`,
+    };
+    if (tab === 'isolering') return {
+      'Type': 'Isolering',
+      'Areal': `${isolering.area} m²`,
+      'Tykkelse': `${isolering.thickness} mm`,
+      'Pakkedækning': `${isolering.packageCoverage} m²/pk`,
+      'Spild': `${isolering.waste}%`,
+    };
     return {};
   }, [tab, terrasse, vaeg, isolering]);
 

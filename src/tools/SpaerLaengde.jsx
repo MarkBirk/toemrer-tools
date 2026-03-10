@@ -50,12 +50,13 @@ export default function SpaerLaengde() {
   }
 
   function getInputs() {
-    return {
-      span,
-      inputMode,
-      hoejde: inputMode === 'hoejde' ? hoejde : '',
-      haeldning: inputMode === 'haeldning' ? haeldning : '',
+    const inp = {
+      'Spænd': `${span} mm`,
+      'Beregningsmetode': inputMode === 'hoejde' ? 'Højde' : 'Hældning',
     };
+    if (inputMode === 'hoejde') inp['Højde'] = `${hoejde} mm`;
+    else inp['Hældning'] = `${haeldning}°`;
+    return inp;
   }
 
   function getResultsList() {

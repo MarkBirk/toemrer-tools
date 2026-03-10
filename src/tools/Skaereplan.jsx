@@ -100,7 +100,14 @@ export default function Skaereplan() {
   }
 
   function getInputs() {
-    return { raaLaengde, snitBredde, stykker };
+    const inp = {
+      'Rålængde': `${raaLaengde} mm`,
+      'Snitbredde': `${snitBredde} mm`,
+    };
+    if (stykker.length > 0) {
+      inp['Emner'] = stykker.map(s => `${s.laengde} mm × ${s.antal} stk`).join(', ');
+    }
+    return inp;
   }
 
   function getResultsList() {

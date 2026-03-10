@@ -44,7 +44,16 @@ export default function Taghaeldning() {
     });
   }
 
-  const inputs = { height, length, unit };
+  const inputs = {
+    'Højdeforskel': `${height} ${unit}`,
+    'Vandret længde': `${length} ${unit}`,
+  };
+
+  const exportResults = results ? {
+    'Hældning (grader)': `${results.degrees}°`,
+    'Hældning (procent)': `${results.percent}%`,
+    'Forholdstal': `1:${results.ratioX}`,
+  } : null;
 
   return (
     <div className="tool-page">
@@ -137,7 +146,7 @@ export default function Taghaeldning() {
           toolPath="/taghaeldning"
           title="Taghældningsberegner"
           inputs={inputs}
-          results={results}
+          results={exportResults}
           materialList={null}
           notes={null}
           onSaved={null}

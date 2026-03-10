@@ -98,9 +98,20 @@ export default function SkruerBeslag() {
 
   function getInputs() {
     if (activeTab === 'terrasse') {
-      return { activeTab, terrasseArea, boardWidth, joistSpacing, screwsPerCrossing };
+      return {
+        'Type': 'Terrasse',
+        'Areal': `${terrasseArea} m²`,
+        'Bræddebredde': `${boardWidth} mm`,
+        'Bjælkeafstand': `${joistSpacing} mm`,
+        'Skruer pr. krydsning': screwsPerCrossing,
+      };
     }
-    return { activeTab, gipsArea, screwsPerM2, layers };
+    return {
+      'Type': 'Gips',
+      'Vægareal': `${gipsArea} m²`,
+      'Skruer pr. m²': screwsPerM2,
+      'Antal lag': layers,
+    };
   }
 
   return (
