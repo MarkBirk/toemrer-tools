@@ -18,14 +18,15 @@ export function generatePDF({ title, date, inputs, results, materialList, notes 
   y += 10;
 
   // Inputs
-  if (inputs && Object.keys(inputs).length > 0) {
+  const inputEntries = normalizeEntries(inputs);
+  if (inputEntries.length > 0) {
     doc.setFontSize(13);
     doc.setFont('helvetica', 'bold');
     doc.text('Input', 14, y);
     y += 7;
     doc.setFontSize(10);
     doc.setFont('helvetica', 'normal');
-    for (const [key, val] of Object.entries(inputs)) {
+    for (const [key, val] of inputEntries) {
       if (y > 270) { doc.addPage(); y = 20; }
       doc.text(`${key}: ${val}`, 14, y);
       y += 6;
@@ -34,14 +35,15 @@ export function generatePDF({ title, date, inputs, results, materialList, notes 
   }
 
   // Results
-  if (results && Object.keys(results).length > 0) {
+  const resultEntries = normalizeEntries(results);
+  if (resultEntries.length > 0) {
     doc.setFontSize(13);
     doc.setFont('helvetica', 'bold');
     doc.text('Resultater', 14, y);
     y += 7;
     doc.setFontSize(10);
     doc.setFont('helvetica', 'normal');
-    for (const [key, val] of Object.entries(results)) {
+    for (const [key, val] of resultEntries) {
       if (y > 270) { doc.addPage(); y = 20; }
       doc.text(`${key}: ${val}`, 14, y);
       y += 6;
@@ -141,14 +143,16 @@ export function generateText({ title, inputs, results, materialList, notes }) {
   let text = `=== ${title || 'Beregning'} ===\n`;
   text += `Dato: ${formatDate(new Date().toISOString())}\n\n`;
 
-  if (inputs && Object.keys(inputs).length) {
+  const inputEntries = normalizeEntries(inputs);
+  if (inputEntries.length) {
     text += '--- Input ---\n';
-    for (const [k, v] of Object.entries(inputs)) text += `${k}: ${v}\n`;
+    for (const [k, v] of inputEntries) text += `${k}: ${v}\n`;
     text += '\n';
   }
-  if (results && Object.keys(results).length) {
+  const resultEntries = normalizeEntries(results);
+  if (resultEntries.length) {
     text += '--- Resultater ---\n';
-    for (const [k, v] of Object.entries(results)) text += `${k}: ${v}\n`;
+    for (const [k, v] of resultEntries) text += `${k}: ${v}\n`;
     text += '\n';
   }
   if (materialList && materialList.length) {
@@ -174,15 +178,17 @@ export function generateEmailHTML({ title, inputs, results, materialList, notes 
   let html = `<h2>${title || 'Beregning'}</h2>`;
   html += `<p><em>Dato: ${formatDate(new Date().toISOString())}</em></p>`;
 
-  if (inputs && Object.keys(inputs).length) {
+  const inputEntries = normalizeEntries(inputs);
+  if (inputEntries.length) {
     html += '<h3>Input</h3><table border="1" cellpadding="4" cellspacing="0" style="border-collapse:collapse">';
-    for (const [k, v] of Object.entries(inputs))
+    for (const [k, v] of inputEntries)
       html += `<tr><td><strong>${k}</strong></td><td>${v}</td></tr>`;
     html += '</table>';
   }
-  if (results && Object.keys(results).length) {
+  const resultEntries = normalizeEntries(results);
+  if (resultEntries.length) {
     html += '<h3>Resultater</h3><table border="1" cellpadding="4" cellspacing="0" style="border-collapse:collapse">';
-    for (const [k, v] of Object.entries(results))
+    for (const [k, v] of resultEntries)
       html += `<tr><td><strong>${k}</strong></td><td>${v}</td></tr>`;
     html += '</table>';
   }
@@ -197,6 +203,45 @@ export function generateEmailHTML({ title, inputs, results, materialList, notes 
   if (notes) html += `<h3>Noter</h3><p>${notes.replace(/\n/g, '<br>')}</p>`;
   html += '<hr><p style="color:#999;font-size:12px">Sendt fra Tømrer Tools</p>';
   return html;
+}
+
+// Format a value for display — handles objects, arrays, primitives
+function formatValue(val) {
+  if (val === null || val === undefined) return '';
+  if (typeof val === 'string' || typeof val === 'number' || typeof val === 'boolean') return String(val);
+  if (Array.isArray(val)) {
+    // Array of objects like [{laengde: 600, antal: 2}]
+    return val.map(item => {
+      if (typeof item === 'object' && item !== null) {
+        return Object.entries(item).map(([k, v]) => `${k}: ${v}`).join(', ');
+      }
+      return String(item);
+    }).join(' | ');
+  }
+  if (typeof val === 'object') {
+    return Object.entries(val).map(([k, v]) => `${k}: ${v}`).join(', ');
+  }
+  return String(val);
+}
+
+// Normalize results: convert array of {label, value} to flat key-value pairs
+function normalizeEntries(data) {
+  if (!data) return [];
+  if (Array.isArray(data)) {
+    // Array of {label, value} objects
+    return data.map(item => {
+      if (item && item.label !== undefined) return [item.label, formatValue(item.value)];
+      return [String(item), ''];
+    });
+  }
+  // Regular object — skip materialList (handled separately as table)
+  return Object.entries(data)
+    .filter(([k, v]) => {
+      if (k === 'materialList' || k === 'tilbudstekst') return false;
+      if (Array.isArray(v) && v.length > 0 && typeof v[0] === 'object') return false;
+      return true;
+    })
+    .map(([k, v]) => [k, formatValue(v)]);
 }
 
 // Helpers
