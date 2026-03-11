@@ -6,6 +6,7 @@ const navItems = [
   { path: '/', label: 'Hjem', icon: '⌂' },
   { path: '/gemte', label: 'Gemte beregninger', icon: '★' },
   { path: '/samlet-liste', label: 'Samlet materialeliste', icon: '☰' },
+  { path: '/tidsregistrering', label: 'Tidsregistrering', icon: '⏱' },
 ];
 
 export default function Layout({ children }) {

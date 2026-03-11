@@ -22,6 +22,8 @@ import ByggeNoter from './tools/ByggeNoter';
 import VaegtBeregner from './tools/VaegtBeregner';
 import Skaereplan from './tools/Skaereplan';
 import ByggeRegler from './tools/ByggeRegler';
+import TimeTracker from './tools/TimeTracker';
+import DocChecklist from './tools/DocChecklist';
 
 const tools = [
   { path: 'materialeberegner', title: 'Materialeberegner', description: 'Terrasse, væg/reglar, isolering', seoDesc: 'Beregn materialer til terrasse, vægge og isolering. Få brædder, strøer, skruer, reglar og isolering med spild%.' },
@@ -36,6 +38,8 @@ const tools = [
   { path: 'vaegt-beregner', title: 'Hvad vejer det?', description: 'Vægt af træ, plader, beton m.m.', seoDesc: 'Beregn vægten af træ, plader, beton og stål ud fra dimensioner og materialetype.' },
   { path: 'skaereplan', title: 'Skæreplan', description: 'Optimér skæring, minimér spild', seoDesc: 'Optimér skæring af brædder og plader. Minimér spild med automatisk skæreplan.' },
   { path: 'bygge-regler', title: 'Bygge-regler', description: 'Ofte brugte regler/krav (reference)', seoDesc: 'Hurtig opslagsbog med danske byggeregler: BR18, skel, brand, isolering, vådrum m.m.' },
+  { path: 'tidsregistrering', title: 'Tidsregistrering', description: 'Start/stop timer pr. sag', seoDesc: 'Registrér arbejdstimer pr. sag med start/stop timer. Akkumulér tid og eksportér til tilbudsberegner.' },
+  { path: 'dokumentation', title: 'Dokumentation', description: 'Fotodokumentation-tjekliste', seoDesc: 'Systematisk tjekliste til fotodokumentation af byggeprojekter. Før, under og efter arbejdet.' },
 ];
 
 function Home() {
@@ -50,7 +54,7 @@ function Home() {
     <div className="home-page">
       <SEO
         title={null}
-        description="12 gratis online beregningsværktøjer til tømrere: materialeberegner, taghældning, skæreplan, tilbudsberegner, vægtberegner og mere."
+        description="14 gratis online værktøjer til tømrere: materialeberegner, taghældning, skæreplan, tilbudsberegner, tidsregistrering, dokumentation og mere."
         path="/"
       />
       <div className="home-header">
@@ -194,6 +198,8 @@ export default function App() {
                   'vaegt-beregner': VaegtBeregner,
                   skaereplan: Skaereplan,
                   'bygge-regler': ByggeRegler,
+                  tidsregistrering: TimeTracker,
+                  dokumentation: DocChecklist,
                 }[t.path]}
                 seo={{ title: t.title, description: t.seoDesc, path: `/${t.path}` }}
               />

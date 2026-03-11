@@ -1,9 +1,9 @@
 import { useState } from 'react';
 import { saveItem, addToMaterialList, getAdminSettings } from '../utils/storage';
-import { downloadPDF, downloadCSV, downloadJSON, copyText, generateEmailHTML, getPDFBase64 } from '../utils/exportUtils';
+import { downloadPDF, downloadCSV, downloadJSON, copyText, generateEmailHTML, getPDFBase64, generateTilbudPDF } from '../utils/exportUtils';
 import { copyShareLink } from '../utils/shareLink';
 
-export default function ResultActions({ toolType, toolPath, title, inputs, results, materialList, notes, onSaved }) {
+export default function ResultActions({ toolType, toolPath, title, inputs, results, materialList, notes, onSaved, tilbudDetaljer }) {
   const [saveTitle, setSaveTitle] = useState('');
   const [showSave, setShowSave] = useState(false);
   const [showEmail, setShowEmail] = useState(false);
@@ -12,6 +12,23 @@ export default function ResultActions({ toolType, toolPath, title, inputs, resul
   const [msg, setMsg] = useState('');
 
   const data = { title: saveTitle || title, inputs, results, materialList, notes };
+
+  function handleDownloadPDF() {
+    if (tilbudDetaljer) {
+      const doc = generateTilbudPDF({ title: data.title, tilbudDetaljer, notes });
+      doc.save(`${data.title || 'tilbud'}.pdf`);
+    } else {
+      downloadPDF(data);
+    }
+  }
+
+  function getTilbudPDFBase64() {
+    if (tilbudDetaljer) {
+      const doc = generateTilbudPDF({ title: data.title, tilbudDetaljer, notes });
+      return doc.output('datauristring').split(',')[1];
+    }
+    return getPDFBase64(data);
+  }
 
   function handleSave() {
     if (!saveTitle.trim()) return setMsg('Angiv en titel');
@@ -50,7 +67,7 @@ export default function ResultActions({ toolType, toolPath, title, inputs, resul
       const adminSettings = getAdminSettings();
       const adminToken = adminSettings.emailAdminToken || '';
       const apiUrl = adminSettings.emailApiUrl || '/api';
-      const pdfBase64 = getPDFBase64(data);
+      const pdfBase64 = getTilbudPDFBase64();
       const res = await fetch(`${apiUrl}/send-email`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'x-admin-token': adminToken },
@@ -77,7 +94,7 @@ export default function ResultActions({ toolType, toolPath, title, inputs, resul
       {msg && <div className="action-msg">{msg}</div>}
 
       <div className="action-buttons">
-        <button onClick={() => downloadPDF(data)} className="btn btn-sm">PDF</button>
+        <button onClick={handleDownloadPDF} className="btn btn-sm">PDF</button>
         {materialList && materialList.length > 0 && (
           <button onClick={() => downloadCSV(materialList)} className="btn btn-sm">CSV</button>
         )}

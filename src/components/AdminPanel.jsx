@@ -293,6 +293,13 @@ function SettingsTab({ settings, setSettings, showMessage, importRef }) {
   const [baseUrl, setBaseUrl] = useState(settings.baseUrl || '');
   const [apiUrl, setApiUrl] = useState(settings.emailApiUrl || '');
   const [adminToken, setAdminToken] = useState(settings.emailAdminToken || '');
+  const firma = settings.firma || {};
+  const [firmaNavn, setFirmaNavn] = useState(firma.navn || '');
+  const [firmaCvr, setFirmaCvr] = useState(firma.cvr || '');
+  const [firmaAdresse, setFirmaAdresse] = useState(firma.adresse || '');
+  const [firmaTelefon, setFirmaTelefon] = useState(firma.telefon || '');
+  const [firmaEmail, setFirmaEmail] = useState(firma.email || '');
+  const [firmaWebsite, setFirmaWebsite] = useState(firma.website || '');
 
   const handleSaveSite = () => {
     const updated = updateAdminSettings({ siteName, baseUrl });
@@ -332,6 +339,13 @@ function SettingsTab({ settings, setSettings, showMessage, importRef }) {
         setBaseUrl(data.baseUrl || '');
         setApiUrl(data.emailApiUrl || '');
         setAdminToken(data.emailAdminToken || '');
+        const f = data.firma || {};
+        setFirmaNavn(f.navn || '');
+        setFirmaCvr(f.cvr || '');
+        setFirmaAdresse(f.adresse || '');
+        setFirmaTelefon(f.telefon || '');
+        setFirmaEmail(f.email || '');
+        setFirmaWebsite(f.website || '');
         showMessage('Indstillinger importeret!');
       } catch {
         showMessage('Ugyldig JSON-fil.', 'error');
@@ -377,7 +391,45 @@ function SettingsTab({ settings, setSettings, showMessage, importRef }) {
           />
           <small className="text-muted">Bruges til canonical URL'er og Open Graph.</small>
         </div>
-        <button className="btn btn-primary" onClick={handleSaveSite}>💾 Gem</button>
+        <button className="btn btn-primary" onClick={handleSaveSite}>Gem</button>
+      </div>
+
+      <div className="card">
+        <h3>Firmainformation</h3>
+        <p className="text-muted">Bruges i tilbuds-PDF'er som afsender. Alle felter er valgfrie.</p>
+        <div style={{ display: 'flex', gap: '0.5rem' }}>
+          <div className="form-group" style={{ flex: 2 }}>
+            <label>Firmanavn</label>
+            <input className="input" value={firmaNavn} onChange={e => setFirmaNavn(e.target.value)} placeholder="Dit Firma ApS" />
+          </div>
+          <div className="form-group" style={{ flex: 1 }}>
+            <label>CVR-nr.</label>
+            <input className="input" value={firmaCvr} onChange={e => setFirmaCvr(e.target.value)} placeholder="12345678" />
+          </div>
+        </div>
+        <div className="form-group">
+          <label>Adresse</label>
+          <input className="input" value={firmaAdresse} onChange={e => setFirmaAdresse(e.target.value)} placeholder="Vestergade 10, 2720 Vanløse" />
+        </div>
+        <div style={{ display: 'flex', gap: '0.5rem' }}>
+          <div className="form-group" style={{ flex: 1 }}>
+            <label>Telefon</label>
+            <input className="input" value={firmaTelefon} onChange={e => setFirmaTelefon(e.target.value)} placeholder="12 34 56 78" />
+          </div>
+          <div className="form-group" style={{ flex: 1 }}>
+            <label>E-mail</label>
+            <input className="input" value={firmaEmail} onChange={e => setFirmaEmail(e.target.value)} placeholder="info@firma.dk" />
+          </div>
+        </div>
+        <div className="form-group">
+          <label>Website</label>
+          <input className="input" value={firmaWebsite} onChange={e => setFirmaWebsite(e.target.value)} placeholder="www.firma.dk" />
+        </div>
+        <button className="btn btn-primary" onClick={() => {
+          const updated = updateAdminSettings({ firma: { navn: firmaNavn, cvr: firmaCvr, adresse: firmaAdresse, telefon: firmaTelefon, email: firmaEmail, website: firmaWebsite } });
+          setSettings(updated);
+          showMessage('Firmainformation gemt!');
+        }}>Gem firma</button>
       </div>
 
       <div className="card">

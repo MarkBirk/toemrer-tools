@@ -2,6 +2,8 @@ import { useState, useEffect } from 'react';
 import ResultActions from '../components/ResultActions';
 import { parseShareFromURL } from '../utils/shareLink';
 import { getCalcDefaults } from '../utils/calcDefaults';
+import { getAdminSettings } from '../utils/storage';
+import { getData, STORAGE_KEYS } from '../services/storage';
 
 export default function Tilbudsberegner() {
   const d = getCalcDefaults().tilbud;
@@ -10,8 +12,47 @@ export default function Tilbudsberegner() {
   const [timepris, setTimepris] = useState(String(d.timepris));
   const [avancePct, setAvancePct] = useState(String(d.avancePct));
   const [momsPct, setMomsPct] = useState(String(d.momsPct));
+  const [inkluderMoms, setInkluderMoms] = useState(true);
+  const [inkluderAvance, setInkluderAvance] = useState(true);
+  const [kundeNavn, setKundeNavn] = useState('');
+  const [kundeAdresse, setKundeAdresse] = useState('');
+  const [projektTitel, setProjektTitel] = useState('');
   const [noter, setNoter] = useState('');
+  const [betalingsfrist, setBetalingsfrist] = useState('8');
   const [results, setResults] = useState(null);
+  const [importMsg, setImportMsg] = useState('');
+
+  function hentFraMaterialeliste() {
+    const draft = getData(STORAGE_KEYS.MATERIALELISTE_DRAFT, null);
+    if (!draft || !draft.grandTotal) {
+      setImportMsg('Ingen materialeliste fundet. Opret en i Materialeliste-generatoren først.');
+      setTimeout(() => setImportMsg(''), 3000);
+      return;
+    }
+    setMaterialomkostning(String(Math.round(draft.grandTotal * 100) / 100));
+    setImportMsg(`Importeret ${draft.grandTotal.toLocaleString('da-DK', { minimumFractionDigits: 2 })} kr. fra materialelisten`);
+    setTimeout(() => setImportMsg(''), 3000);
+  }
+
+  function hentFraTidsregistrering() {
+    const sager = getData(STORAGE_KEYS.TIDSREGISTRERING, []);
+    if (!sager.length) {
+      setImportMsg('Ingen tidsregistrering fundet. Opret sager i Tidsregistrering først.');
+      setTimeout(() => setImportMsg(''), 3000);
+      return;
+    }
+    let totalMs = 0;
+    for (const sag of sager) {
+      for (const entry of sag.entries) {
+        const end = entry.end || Date.now();
+        totalMs += end - entry.start;
+      }
+    }
+    const hours = Math.round((totalMs / 3600000) * 100) / 100;
+    setTimer(String(hours));
+    setImportMsg(`Importeret ${hours} timer fra tidsregistrering`);
+    setTimeout(() => setImportMsg(''), 3000);
+  }
 
   // Check for share data on mount
   useEffect(() => {
@@ -45,15 +86,16 @@ export default function Tilbudsberegner() {
 
     const arbejdsloen = hours * hourlyRate;
     const subtotal = matCost + arbejdsloen;
-    const avance = subtotal * markupPct / 100;
+    const avance = inkluderAvance ? subtotal * markupPct / 100 : 0;
     const totalExMoms = subtotal + avance;
-    const moms = totalExMoms * vatPct / 100;
+    const moms = inkluderMoms ? totalExMoms * vatPct / 100 : 0;
     const totalInklMoms = totalExMoms + moms;
 
     const tilbudstekst = genererTilbudstekst({
       matCost, arbejdsloen, subtotal, avance,
       totalExMoms, moms, totalInklMoms,
       markupPct, vatPct, hours, hourlyRate, noter,
+      visMoms: inkluderMoms, visAvance: inkluderAvance,
     });
 
     setResults({
@@ -70,7 +112,7 @@ export default function Tilbudsberegner() {
     });
   }
 
-  function genererTilbudstekst({ matCost, arbejdsloen, subtotal, avance, totalExMoms, moms, totalInklMoms, markupPct, vatPct, hours, hourlyRate, noter }) {
+  function genererTilbudstekst({ matCost, arbejdsloen, subtotal, avance, totalExMoms, moms, totalInklMoms, markupPct, vatPct, hours, hourlyRate, noter, visMoms, visAvance }) {
     const lines = [
       '--- TILBUD ---',
       '',
@@ -87,12 +129,18 @@ export default function Tilbudsberegner() {
     lines.push(`  Arbejdsløn (${hours} t × ${formatKr(hourlyRate)} kr.): ${formatKr(arbejdsloen)} kr.`);
     lines.push(`  ----------------------------------`);
     lines.push(`  Subtotal:              ${formatKr(subtotal)} kr.`);
-    lines.push(`  Avance (${markupPct}%):         ${formatKr(avance)} kr.`);
-    lines.push(`  ----------------------------------`);
-    lines.push(`  Total ex. moms:        ${formatKr(totalExMoms)} kr.`);
-    lines.push(`  Moms (${vatPct}%):             ${formatKr(moms)} kr.`);
+    if (visAvance) {
+      lines.push(`  Avance (${markupPct}%):         ${formatKr(avance)} kr.`);
+    }
+    if (visAvance || visMoms) {
+      lines.push(`  ----------------------------------`);
+      lines.push(`  Total ex. moms:        ${formatKr(totalExMoms)} kr.`);
+    }
+    if (visMoms) {
+      lines.push(`  Moms (${vatPct}%):             ${formatKr(moms)} kr.`);
+    }
     lines.push(`  ==================================`);
-    lines.push(`  TOTAL INKL. MOMS:      ${formatKr(totalInklMoms)} kr.`);
+    lines.push(`  ${visMoms ? 'TOTAL INKL. MOMS' : 'TOTAL'}:      ${formatKr(totalInklMoms)} kr.`);
     lines.push('');
     lines.push('---');
 
@@ -103,21 +151,47 @@ export default function Tilbudsberegner() {
     'Materialomkostning': `${materialomkostning || 0} kr.`,
     'Timer': timer || '0',
     'Timepris': `${timepris} kr.`,
-    'Avance': `${avancePct}%`,
-    'Moms': `${momsPct}%`,
   };
+  if (inkluderAvance) inputData['Avance'] = `${avancePct}%`;
+  if (inkluderMoms) inputData['Moms'] = `${momsPct}%`;
 
   const resultData = results
-    ? {
-        'Materialer': `${formatKr(results.materialer)} kr.`,
-        'Arbejdsløn': `${formatKr(results.arbejdsloen)} kr.`,
-        'Subtotal': `${formatKr(results.subtotal)} kr.`,
-        'Avance': `${formatKr(results.avance)} kr. (${results.avancePct}%)`,
-        'Total ex. moms': `${formatKr(results.totalExMoms)} kr.`,
-        'Moms': `${formatKr(results.moms)} kr. (${results.momsPct}%)`,
-        'Total inkl. moms': `${formatKr(results.totalInklMoms)} kr.`,
-      }
+    ? (() => {
+        const d = {};
+        d['Materialer'] = `${formatKr(results.materialer)} kr.`;
+        d['Arbejdsløn'] = `${formatKr(results.arbejdsloen)} kr.`;
+        d['Subtotal'] = `${formatKr(results.subtotal)} kr.`;
+        if (inkluderAvance) d['Avance'] = `${formatKr(results.avance)} kr. (${results.avancePct}%)`;
+        if (inkluderAvance || inkluderMoms) d['Total ex. moms'] = `${formatKr(results.totalExMoms)} kr.`;
+        if (inkluderMoms) d['Moms'] = `${formatKr(results.moms)} kr. (${results.momsPct}%)`;
+        d[inkluderMoms ? 'Total inkl. moms' : 'Total'] = `${formatKr(results.totalInklMoms)} kr.`;
+        return d;
+      })()
     : null;
+
+  // Structured data for custom tilbud PDF
+  const firma = getAdminSettings().firma || {};
+  const tilbudDetaljer = results ? {
+    materialer: results.materialer,
+    timer: parseFloat(timer) || 0,
+    timepris: parseFloat(timepris) || 0,
+    arbejdsloen: results.arbejdsloen,
+    subtotal: results.subtotal,
+    avance: results.avance,
+    avancePct: results.avancePct,
+    totalExMoms: results.totalExMoms,
+    moms: results.moms,
+    momsPct: results.momsPct,
+    totalInklMoms: results.totalInklMoms,
+    inkluderMoms,
+    inkluderAvance,
+    noter,
+    kundeNavn,
+    kundeAdresse,
+    projektTitel,
+    betalingsfrist: parseInt(betalingsfrist) || 8,
+    firma,
+  } : null;
 
   return (
     <div className="tool-page">
@@ -125,29 +199,43 @@ export default function Tilbudsberegner() {
       <p>Beregn et hurtigt tilbud med materialer, arbejdsløn, avance og moms.</p>
 
       <div className="card">
+        {importMsg && <div className="action-msg" style={{ marginBottom: '0.5rem' }}>{importMsg}</div>}
+
         <div className="form-group">
           <label>Materialomkostning (kr.)</label>
-          <input
-            type="number"
-            className="input"
-            value={materialomkostning}
-            onChange={e => setMaterialomkostning(e.target.value)}
-            placeholder="0"
-            min="0"
-          />
+          <div style={{ display: 'flex', gap: '0.5rem' }}>
+            <input
+              type="number"
+              className="input"
+              value={materialomkostning}
+              onChange={e => setMaterialomkostning(e.target.value)}
+              placeholder="0"
+              min="0"
+              style={{ flex: 1 }}
+            />
+            <button type="button" className="btn btn-sm btn-secondary" onClick={hentFraMaterialeliste} title="Hent total fra materialelisten">
+              Hent fra liste
+            </button>
+          </div>
         </div>
 
         <div className="form-group">
           <label>Timer</label>
-          <input
-            type="number"
-            className="input"
-            value={timer}
-            onChange={e => setTimer(e.target.value)}
-            placeholder="0"
-            min="0"
-            step="0.5"
-          />
+          <div style={{ display: 'flex', gap: '0.5rem' }}>
+            <input
+              type="number"
+              className="input"
+              value={timer}
+              onChange={e => setTimer(e.target.value)}
+              placeholder="0"
+              min="0"
+              step="0.5"
+              style={{ flex: 1 }}
+            />
+            <button type="button" className="btn btn-sm btn-secondary" onClick={hentFraTidsregistrering} title="Hent timer fra tidsregistrering">
+              Hent timer
+            </button>
+          </div>
         </div>
 
         <div className="form-group">
@@ -162,42 +250,87 @@ export default function Tilbudsberegner() {
           />
         </div>
 
-        <div style={{ display: 'flex', gap: '0.5rem' }}>
+        <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'flex-end' }}>
           <div className="form-group" style={{ flex: 1 }}>
-            <label>Avance (%)</label>
-            <input
-              type="number"
-              className="input"
-              value={avancePct}
-              onChange={e => setAvancePct(e.target.value)}
-              placeholder="15"
-              min="0"
-              max="100"
-            />
+            <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <input
+                type="checkbox"
+                checked={inkluderAvance}
+                onChange={e => setInkluderAvance(e.target.checked)}
+                style={{ width: 'auto', accentColor: 'var(--accent)' }}
+              />
+              Avance (%)
+            </label>
+            {inkluderAvance && (
+              <input
+                type="number"
+                className="input"
+                value={avancePct}
+                onChange={e => setAvancePct(e.target.value)}
+                placeholder="15"
+                min="0"
+                max="100"
+              />
+            )}
           </div>
 
           <div className="form-group" style={{ flex: 1 }}>
-            <label>Moms (%)</label>
-            <input
-              type="number"
-              className="input"
-              value={momsPct}
-              onChange={e => setMomsPct(e.target.value)}
-              placeholder="25"
-              min="0"
-              max="100"
-            />
+            <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <input
+                type="checkbox"
+                checked={inkluderMoms}
+                onChange={e => setInkluderMoms(e.target.checked)}
+                style={{ width: 'auto', accentColor: 'var(--accent)' }}
+              />
+              Moms (%)
+            </label>
+            {inkluderMoms && (
+              <input
+                type="number"
+                className="input"
+                value={momsPct}
+                onChange={e => setMomsPct(e.target.value)}
+                placeholder="25"
+                min="0"
+                max="100"
+              />
+            )}
+          </div>
+        </div>
+
+        <hr style={{ border: 'none', borderTop: '1px solid var(--border-light)', margin: '0.75rem 0' }} />
+        <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', margin: '0 0 0.5rem' }}>Tilbuds-detaljer (vises i PDF)</p>
+
+        <div style={{ display: 'flex', gap: '0.5rem' }}>
+          <div className="form-group" style={{ flex: 1 }}>
+            <label>Kundenavn</label>
+            <input className="input" value={kundeNavn} onChange={e => setKundeNavn(e.target.value)} placeholder="Jens Jensen" />
+          </div>
+          <div className="form-group" style={{ flex: 1 }}>
+            <label>Projekttitel</label>
+            <input className="input" value={projektTitel} onChange={e => setProjektTitel(e.target.value)} placeholder="Renovering af køkken" />
+          </div>
+        </div>
+
+        <div style={{ display: 'flex', gap: '0.5rem' }}>
+          <div className="form-group" style={{ flex: 2 }}>
+            <label>Kundeadresse</label>
+            <input className="input" value={kundeAdresse} onChange={e => setKundeAdresse(e.target.value)} placeholder="Vestergade 10, 2720 Vanløse" />
+          </div>
+          <div className="form-group" style={{ flex: 1 }}>
+            <label>Betalingsfrist (dage)</label>
+            <input type="number" className="input" value={betalingsfrist} onChange={e => setBetalingsfrist(e.target.value)} placeholder="8" min="0" />
           </div>
         </div>
 
         <div className="form-group">
-          <label>Noter / beskrivelse</label>
+          <label>Beskrivelse af arbejdet</label>
           <textarea
             className="input"
             value={noter}
             onChange={e => setNoter(e.target.value)}
-            placeholder="Valgfri beskrivelse af arbejdet..."
-            rows={3}
+            placeholder="Tilbuddet omfatter:&#10;- Nedrivning af eksisterende køkken&#10;- Opsætning af nye skabe&#10;- Montering af bordplade"
+            rows={4}
           />
         </div>
 
@@ -224,20 +357,28 @@ export default function Tilbudsberegner() {
                 <td style={{ padding: '0.4rem 0' }}>Subtotal</td>
                 <td style={{ textAlign: 'right', padding: '0.4rem 0' }}>{formatKr(results.subtotal)} kr.</td>
               </tr>
-              <tr>
-                <td style={{ padding: '0.4rem 0' }}>Avance ({results.avancePct}%)</td>
-                <td style={{ textAlign: 'right', padding: '0.4rem 0' }}>{formatKr(results.avance)} kr.</td>
-              </tr>
-              <tr style={{ borderTop: '1px solid #ddd', fontWeight: '600' }}>
-                <td style={{ padding: '0.4rem 0' }}>Total ex. moms</td>
-                <td style={{ textAlign: 'right', padding: '0.4rem 0' }}>{formatKr(results.totalExMoms)} kr.</td>
-              </tr>
-              <tr>
-                <td style={{ padding: '0.4rem 0' }}>Moms ({results.momsPct}%)</td>
-                <td style={{ textAlign: 'right', padding: '0.4rem 0' }}>{formatKr(results.moms)} kr.</td>
-              </tr>
+              {inkluderAvance && (
+                <tr>
+                  <td style={{ padding: '0.4rem 0' }}>Avance ({results.avancePct}%)</td>
+                  <td style={{ textAlign: 'right', padding: '0.4rem 0' }}>{formatKr(results.avance)} kr.</td>
+                </tr>
+              )}
+              {(inkluderAvance || inkluderMoms) && (
+                <tr style={{ borderTop: '1px solid #ddd', fontWeight: '600' }}>
+                  <td style={{ padding: '0.4rem 0' }}>Total ex. moms</td>
+                  <td style={{ textAlign: 'right', padding: '0.4rem 0' }}>{formatKr(results.totalExMoms)} kr.</td>
+                </tr>
+              )}
+              {inkluderMoms && (
+                <tr>
+                  <td style={{ padding: '0.4rem 0' }}>Moms ({results.momsPct}%)</td>
+                  <td style={{ textAlign: 'right', padding: '0.4rem 0' }}>{formatKr(results.moms)} kr.</td>
+                </tr>
+              )}
               <tr style={{ borderTop: '2px solid #333', fontWeight: 'bold', fontSize: '1.1rem' }}>
-                <td style={{ padding: '0.6rem 0' }}>TOTAL INKL. MOMS</td>
+                <td style={{ padding: '0.6rem 0' }}>
+                  {inkluderMoms ? 'TOTAL INKL. MOMS' : 'TOTAL'}
+                </td>
                 <td style={{ textAlign: 'right', padding: '0.6rem 0' }}>{formatKr(results.totalInklMoms)} kr.</td>
               </tr>
             </tbody>
@@ -266,6 +407,7 @@ export default function Tilbudsberegner() {
             results={resultData}
             materialList={null}
             notes={noter}
+            tilbudDetaljer={tilbudDetaljer}
           />
         </div>
       )}

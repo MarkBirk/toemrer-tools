@@ -102,6 +102,227 @@ export function generatePDF({ title, date, inputs, results, materialList, notes 
   return doc;
 }
 
+// Professional tilbud/quote PDF — inspired by traditional Danish quote layout
+export function generateTilbudPDF({ title, date, tilbudDetaljer, notes }) {
+  const doc = new jsPDF();
+  const pageWidth = doc.internal.pageSize.getWidth();
+  const d = tilbudDetaljer;
+  const firma = d.firma || {};
+  const rightCol = pageWidth - 14;
+  const dateStr = formatDate(date || new Date().toISOString());
+
+  // ── Company info (top right) ──
+  let fy = 20;
+  if (firma.navn) {
+    doc.setFontSize(13);
+    doc.setFont('helvetica', 'bold');
+    doc.text(firma.navn, rightCol, fy, { align: 'right' });
+    fy += 6;
+  }
+  doc.setFontSize(9);
+  doc.setFont('helvetica', 'normal');
+  doc.setTextColor(100);
+  if (firma.cvr) { doc.text(`CVR: ${firma.cvr}`, rightCol, fy, { align: 'right' }); fy += 4.5; }
+  if (firma.adresse) { doc.text(firma.adresse, rightCol, fy, { align: 'right' }); fy += 4.5; }
+  if (firma.telefon) { doc.text(`Tlf.: ${firma.telefon}`, rightCol, fy, { align: 'right' }); fy += 4.5; }
+  if (firma.email) { doc.text(firma.email, rightCol, fy, { align: 'right' }); fy += 4.5; }
+  if (firma.website) { doc.text(firma.website, rightCol, fy, { align: 'right' }); fy += 4.5; }
+  doc.setTextColor(0);
+
+  // ── Customer info (top left) ──
+  let cy = 20;
+  if (d.kundeNavn) {
+    doc.setFontSize(11);
+    doc.setFont('helvetica', 'bold');
+    doc.text(d.kundeNavn, 14, cy);
+    cy += 5.5;
+  }
+  doc.setFontSize(9);
+  doc.setFont('helvetica', 'normal');
+  doc.setTextColor(100);
+  if (d.kundeAdresse) { doc.text(d.kundeAdresse, 14, cy); cy += 4.5; }
+  doc.text(`Dato: ${dateStr}`, 14, cy);
+  doc.setTextColor(0);
+
+  // ── Horizontal divider ──
+  let y = Math.max(fy, cy) + 10;
+  doc.setDrawColor(207, 195, 176);
+  doc.setLineWidth(0.5);
+  doc.line(14, y, pageWidth - 14, y);
+  y += 14;
+
+  // ── TILBUD heading ──
+  doc.setFontSize(20);
+  doc.setFont('helvetica', 'bold');
+  doc.text('TILBUD', 14, y);
+  y += 10;
+
+  // ── Intro text ──
+  doc.setFontSize(10);
+  doc.setFont('helvetica', 'normal');
+  doc.text('Tak for jeres forespørgsel. Vi har hermed fornøjelsen at tilbyde følgende:', 14, y);
+  y += 10;
+
+  // ── Project title + description ──
+  if (d.projektTitel) {
+    doc.setFontSize(11);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(140, 104, 64);
+    doc.text(d.projektTitel, 14, y);
+    // Underline
+    const tw = doc.getTextWidth(d.projektTitel);
+    doc.setDrawColor(140, 104, 64);
+    doc.setLineWidth(0.3);
+    doc.line(14, y + 1, 14 + tw, y + 1);
+    doc.setTextColor(0);
+    y += 7;
+  }
+
+  if (notes && notes.trim()) {
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'normal');
+    // Format bullet points if lines start with "-" or "•"
+    const noteLines = notes.trim().split('\n');
+    for (const line of noteLines) {
+      if (y > 255) { doc.addPage(); y = 20; }
+      const trimmed = line.trim();
+      if (trimmed.startsWith('-') || trimmed.startsWith('•')) {
+        const bullet = trimmed.replace(/^[-•]\s*/, '');
+        doc.text('•', 18, y);
+        const wrapped = doc.splitTextToSize(bullet, pageWidth - 40);
+        doc.text(wrapped, 24, y);
+        y += wrapped.length * 5;
+      } else {
+        const wrapped = doc.splitTextToSize(trimmed, pageWidth - 28);
+        doc.text(wrapped, 14, y);
+        y += wrapped.length * 5;
+      }
+    }
+    y += 6;
+  }
+
+  // ── Divider before price ──
+  doc.setDrawColor(207, 195, 176);
+  doc.setLineWidth(0.3);
+  doc.line(14, y, pageWidth - 14, y);
+  y += 10;
+
+  // ── Pris section ──
+  doc.setFontSize(12);
+  doc.setFont('helvetica', 'bold');
+  doc.text('Pris', 14, y);
+  y += 3;
+
+  const rows = [];
+  rows.push(['Materialer', `${formatKr(d.materialer)} kr.`]);
+  const timerLabel = d.timer > 0
+    ? `Arbejdsløn (${d.timer} t × ${formatKr(d.timepris)} kr.)`
+    : 'Arbejdsløn';
+  rows.push([timerLabel, `${formatKr(d.arbejdsloen)} kr.`]);
+
+  // Subtotal
+  rows.push([{ content: 'Subtotal', styles: { fontStyle: 'bold' } }, { content: `${formatKr(d.subtotal)} kr.`, styles: { fontStyle: 'bold' } }]);
+
+  if (d.inkluderAvance) {
+    rows.push([`Avance (${d.avancePct}%)`, `${formatKr(d.avance)} kr.`]);
+  }
+  if (d.inkluderAvance || d.inkluderMoms) {
+    rows.push([{ content: 'Total ex. moms', styles: { fontStyle: 'bold' } }, { content: `${formatKr(d.totalExMoms)} kr.`, styles: { fontStyle: 'bold' } }]);
+  }
+  if (d.inkluderMoms) {
+    rows.push([{ content: `${d.momsPct}% moms`, styles: { textColor: [140, 104, 64] } }, { content: `${formatKr(d.moms)} kr.`, styles: { textColor: [140, 104, 64] } }]);
+  }
+
+  const totalLabel = d.inkluderMoms ? 'Total DKK' : 'Total';
+  rows.push([
+    { content: totalLabel, styles: { fontStyle: 'bold', fontSize: 11, textColor: [140, 104, 64] } },
+    { content: `${formatKr(d.totalInklMoms)} kr.`, styles: { fontStyle: 'bold', fontSize: 11, textColor: [140, 104, 64] } }
+  ]);
+
+  doc.autoTable({
+    startY: y,
+    body: rows,
+    columns: [
+      { dataKey: 0, header: '' },
+      { dataKey: 1, header: '' },
+    ],
+    showHead: false,
+    styles: {
+      fontSize: 10,
+      cellPadding: { top: 3, bottom: 3, left: 0, right: 0 },
+      lineWidth: 0,
+    },
+    columnStyles: {
+      0: { cellWidth: 'auto' },
+      1: { cellWidth: 55, halign: 'right' },
+    },
+    didParseCell(data) {
+      const rowIdx = data.row.index;
+      const totalRows = rows.length;
+      // Subtotal row — top border
+      if (rowIdx === 2) {
+        data.cell.styles.lineWidth = { top: 0.3 };
+        data.cell.styles.lineColor = [207, 195, 176];
+      }
+      // Total ex. moms row
+      const totalExIdx = d.inkluderAvance ? (d.inkluderMoms ? totalRows - 3 : totalRows - 2) : (d.inkluderMoms ? totalRows - 2 : -1);
+      if (totalExIdx >= 0 && rowIdx === totalExIdx) {
+        data.cell.styles.lineWidth = { top: 0.3 };
+        data.cell.styles.lineColor = [207, 195, 176];
+      }
+      // Grand total row — top border
+      if (rowIdx === totalRows - 1) {
+        data.cell.styles.lineWidth = { top: 0.5 };
+        data.cell.styles.lineColor = [140, 104, 64];
+      }
+    },
+    margin: { left: 14, right: 14 },
+  });
+
+  y = doc.lastAutoTable.finalY + 20;
+
+  // ── Payment terms ──
+  if (y > 250) { doc.addPage(); y = 20; }
+  doc.setFontSize(9);
+  doc.setFont('helvetica', 'normal');
+  doc.setTextColor(80);
+  doc.text(`Betalingsbetingelser: Netto ${d.betalingsfrist || 8} dage.`, 14, y);
+  y += 12;
+
+  // ── Signature / greeting ──
+  const greeting = firma.navn ? `Med venlig hilsen ${firma.navn}` : 'Med venlig hilsen';
+  doc.text(greeting, 14, y);
+  y += 5;
+  const contactParts = [];
+  if (firma.telefon) contactParts.push(`Tlf.: ${firma.telefon}`);
+  if (firma.email) contactParts.push(`Mail: ${firma.email}`);
+  if (firma.website) contactParts.push(`Web: ${firma.website}`);
+  if (contactParts.length) {
+    doc.text(contactParts.join('  –  '), 14, y);
+  }
+  doc.setTextColor(0);
+
+  // ── Footer on all pages ──
+  const pageCount = doc.internal.getNumberOfPages();
+  for (let i = 1; i <= pageCount; i++) {
+    doc.setPage(i);
+    doc.setDrawColor(207, 195, 176);
+    doc.setLineWidth(0.3);
+    doc.line(14, 284, pageWidth - 14, 284);
+    doc.setFontSize(7);
+    doc.setTextColor(160);
+    doc.text(firma.navn || 'Tømrer Tools', 14, 289);
+    doc.text(`Side ${i}/${pageCount}`, pageWidth - 14, 289, { align: 'right' });
+    doc.setTextColor(0);
+  }
+
+  return doc;
+}
+
+function formatKr(n) {
+  return Number(n).toLocaleString('da-DK', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
 export function downloadPDF(data, filename) {
   const doc = generatePDF(data);
   doc.save(filename || `${slugify(data.title || 'beregning')}.pdf`);
