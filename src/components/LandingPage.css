@@ -3,15 +3,16 @@
    ═══════════════════════════════════════════════ */
 
 /* === Hero === */
+.landing {
+  margin: calc(-1 * var(--space-4));
+  margin-bottom: 0;
+}
+
 .landing-hero {
   text-align: center;
   padding: var(--space-10) var(--space-4) var(--space-6);
   position: relative;
   background: url('/hero-bg.jpg') center center / cover no-repeat;
-  margin: 0 calc(-1 * var(--space-4));
-  padding-left: var(--space-4);
-  padding-right: var(--space-4);
-  border-radius: 0 0 var(--radius-lg) var(--radius-lg);
   overflow: hidden;
 }
 

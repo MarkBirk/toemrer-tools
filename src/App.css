@@ -602,12 +602,21 @@ table th {
 .list-picker h3 { margin: 0 0 var(--space-3); }
 .list-picker-item {
   display: flex; align-items: center; justify-content: space-between;
-  padding: var(--space-2) var(--space-3);
-  border: 1px solid var(--border-light); border-radius: var(--radius);
-  margin-bottom: var(--space-2); cursor: pointer;
-  transition: border-color 0.15s, background 0.15s;
+  padding: var(--space-3);
+  border: 2px solid var(--border);
+  border-radius: var(--radius);
+  margin-bottom: var(--space-2);
+  cursor: pointer;
+  background: var(--bg-base);
+  font-weight: 500;
+  color: var(--text-primary);
+  transition: border-color 0.15s, background 0.15s, box-shadow 0.15s;
 }
-.list-picker-item:hover { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 5%, var(--bg-base)); }
+.list-picker-item:hover {
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 10%, var(--bg-base));
+  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+}
 
 /* === Badge === */
 .badge {
