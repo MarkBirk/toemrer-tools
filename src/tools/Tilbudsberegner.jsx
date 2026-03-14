@@ -1,11 +1,13 @@
 import { useState, useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
 import ResultActions from '../components/ResultActions';
 import { parseShareFromURL } from '../utils/shareLink';
 import { getCalcDefaults } from '../utils/calcDefaults';
 import { getAdminSettings } from '../utils/storage';
-import { getData, STORAGE_KEYS } from '../services/storage';
+import { getData, STORAGE_KEYS, getSavedMaterialLists } from '../services/storage';
 
 export default function Tilbudsberegner() {
+  const location = useLocation();
   const d = getCalcDefaults().tilbud;
   const [materialomkostning, setMaterialomkostning] = useState('');
   const [timer, setTimer] = useState('');
@@ -21,16 +23,32 @@ export default function Tilbudsberegner() {
   const [betalingsfrist, setBetalingsfrist] = useState('8');
   const [results, setResults] = useState(null);
   const [importMsg, setImportMsg] = useState('');
+  const [showListPicker, setShowListPicker] = useState(false);
 
   function hentFraMaterialeliste() {
     const draft = getData(STORAGE_KEYS.MATERIALELISTE_DRAFT, null);
-    if (!draft || !draft.grandTotal) {
+    const savedLists = getSavedMaterialLists();
+    const hasDraft = draft && draft.grandTotal > 0;
+
+    // If there are saved lists, show picker
+    if (savedLists.length > 0) {
+      setShowListPicker(true);
+      return;
+    }
+
+    // Fallback: just use draft
+    if (!hasDraft) {
       setImportMsg('Ingen materialeliste fundet. Opret en i Materialeliste-generatoren først.');
       setTimeout(() => setImportMsg(''), 3000);
       return;
     }
-    setMaterialomkostning(String(Math.round(draft.grandTotal * 100) / 100));
-    setImportMsg(`Importeret ${draft.grandTotal.toLocaleString('da-DK', { minimumFractionDigits: 2 })} kr. fra materialelisten`);
+    importFromList(draft.grandTotal, 'materialelisten');
+  }
+
+  function importFromList(total, name) {
+    setMaterialomkostning(String(Math.round(total * 100) / 100));
+    setImportMsg(`Importeret ${total.toLocaleString('da-DK', { minimumFractionDigits: 2 })} kr. fra ${name}`);
+    setShowListPicker(false);
     setTimeout(() => setImportMsg(''), 3000);
   }
 
@@ -54,8 +72,18 @@ export default function Tilbudsberegner() {
     setTimeout(() => setImportMsg(''), 3000);
   }
 
-  // Check for share data on mount
+  // Check for saved item or share data on mount
   useEffect(() => {
+    const saved = location.state?.savedItem;
+    if (saved?.inputs) {
+      const inp = saved.inputs;
+      if (inp['Materialomkostning']) setMaterialomkostning(inp['Materialomkostning'].replace(/[^\d.,]/g, '').replace(',', '.'));
+      if (inp['Timer']) setTimer(inp['Timer']);
+      if (inp['Timepris']) setTimepris(inp['Timepris'].replace(/[^\d.,]/g, '').replace(',', '.'));
+      if (inp['Avance']) setAvancePct(inp['Avance'].replace(/[^\d.,]/g, '').replace(',', '.'));
+      if (inp['Moms']) setMomsPct(inp['Moms'].replace(/[^\d.,]/g, '').replace(',', '.'));
+      return;
+    }
     const shared = parseShareFromURL();
     if (shared && shared.inputs) {
       const inp = shared.inputs;
@@ -409,6 +437,47 @@ export default function Tilbudsberegner() {
             notes={noter}
             tilbudDetaljer={tilbudDetaljer}
           />
+        </div>
+      )}
+      {showListPicker && (
+        <div className="list-picker-overlay" onClick={() => setShowListPicker(false)}>
+          <div className="list-picker" onClick={e => e.stopPropagation()}>
+            <h3>Vælg materialeliste</h3>
+            {(() => {
+              const draft = getData(STORAGE_KEYS.MATERIALELISTE_DRAFT, null);
+              const saved = getSavedMaterialLists();
+              return (
+                <>
+                  {draft && draft.grandTotal > 0 && (
+                    <div className="list-picker-item" onClick={() => importFromList(draft.grandTotal, 'nuværende kladde')}>
+                      <div>
+                        <strong>Nuværende kladde</strong>
+                        <small className="text-muted" style={{ marginLeft: '0.5rem' }}>
+                          {draft.list?.length || 0} poster
+                        </small>
+                      </div>
+                      <strong>{draft.grandTotal.toLocaleString('da-DK', { minimumFractionDigits: 2 })} kr.</strong>
+                    </div>
+                  )}
+                  {saved.map(sl => (
+                    <div key={sl.id} className="list-picker-item" onClick={() => importFromList(sl.grandTotal, sl.name)}>
+                      <div>
+                        <strong>{sl.name}</strong>
+                        <small className="text-muted" style={{ marginLeft: '0.5rem' }}>
+                          {sl.list.length} poster
+                        </small>
+                      </div>
+                      <strong>{sl.grandTotal.toLocaleString('da-DK', { minimumFractionDigits: 2 })} kr.</strong>
+                    </div>
+                  ))}
+                  {(!draft || !draft.grandTotal) && saved.length === 0 && (
+                    <p className="text-muted">Ingen materialelister fundet.</p>
+                  )}
+                </>
+              );
+            })()}
+            <button className="btn btn-sm" style={{ marginTop: '0.5rem' }} onClick={() => setShowListPicker(false)}>Annuller</button>
+          </div>
         </div>
       )}
     </div>

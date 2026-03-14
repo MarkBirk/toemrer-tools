@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
 import ResultActions from '../components/ResultActions';
 import { parseShareFromURL } from '../utils/shareLink';
 import { getCalcDefaults } from '../utils/calcDefaults';
@@ -16,6 +17,7 @@ function getMaterialCategory(material) {
 }
 
 export default function VaegtBeregner() {
+  const location = useLocation();
   const DENSITIES = getCalcDefaults().densiteter;
   const [material, setMaterial] = useState('Fyrretræ');
   const [width, setWidth] = useState('');
@@ -27,8 +29,24 @@ export default function VaegtBeregner() {
   const [antal, setAntal] = useState('1');
   const [results, setResults] = useState(null);
 
-  // Load shared data from URL on mount
+  // Load saved item or shared data from URL on mount
   useEffect(() => {
+    const saved = location.state?.savedItem;
+    if (saved?.inputs) {
+      const inp = saved.inputs;
+      const p = (v) => v ? v.replace(/[^\d.,]/g, '').replace(',', '.') : '';
+      if (inp['Materiale']) setMaterial(inp['Materiale']);
+      if (inp['Antal']) setAntal(String(inp['Antal']));
+      if (inp['Bredde']) setWidth(p(inp['Bredde']));
+      if (inp['Højde']) setHeight(p(inp['Højde']));
+      if (inp['Længde']) setLengthVal(p(inp['Længde']));
+      if (inp['Tykkelse']) setThickness(p(inp['Tykkelse']));
+      if (inp['Volumen']) {
+        setBetonMode('volumen');
+        setVolumeM3(p(inp['Volumen']));
+      }
+      return;
+    }
     const shared = parseShareFromURL();
     if (shared && shared.inputs) {
       const inp = shared.inputs;

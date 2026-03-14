@@ -107,7 +107,6 @@ export default function ResultActions({ toolType, toolPath, title, inputs, resul
         {materialList && materialList.length > 0 && (
           <button onClick={() => downloadCSV(materialList)} className="btn btn-sm">CSV</button>
         )}
-        <button onClick={() => downloadJSON({ toolType, ...data })} className="btn btn-sm">JSON</button>
         <button onClick={handleCopy} className="btn btn-sm">Kopiér</button>
         <button onClick={handleShare} className="btn btn-sm">Delelink</button>
         {materialList && materialList.length > 0 && (

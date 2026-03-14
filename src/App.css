@@ -576,6 +576,39 @@ table th {
   gap: var(--space-1);
 }
 
+/* === Saved Material Lists === */
+.saved-lists { display: flex; flex-direction: column; gap: var(--space-1); }
+.saved-list-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2);
+  background: var(--bg-base);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius);
+}
+.saved-list-item.active { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 5%, var(--bg-base)); }
+
+/* === List Picker (Tilbudsberegner) === */
+.list-picker-overlay {
+  position: fixed; inset: 0; background: rgba(0,0,0,0.4); z-index: 100;
+  display: flex; align-items: center; justify-content: center; padding: var(--space-4);
+}
+.list-picker {
+  background: var(--bg-card); border-radius: var(--radius-lg); padding: var(--space-4);
+  max-width: 500px; width: 100%; max-height: 80vh; overflow-y: auto;
+  box-shadow: var(--shadow-lg);
+}
+.list-picker h3 { margin: 0 0 var(--space-3); }
+.list-picker-item {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--border-light); border-radius: var(--radius);
+  margin-bottom: var(--space-2); cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+}
+.list-picker-item:hover { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 5%, var(--bg-base)); }
+
 /* === Badge === */
 .badge {
   display: inline-block;
@@ -1500,6 +1533,92 @@ table th {
   gap: var(--space-2);
   margin-top: var(--space-3);
   flex-wrap: wrap;
+}
+
+/* === Contact Form === */
+.contact-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  margin-top: var(--space-3);
+}
+.contact-form textarea {
+  resize: vertical;
+  min-height: 120px;
+}
+.contact-success {
+  text-align: center;
+  padding: var(--space-6) var(--space-4);
+}
+.contact-success h2 {
+  color: var(--accent);
+  margin-bottom: var(--space-2);
+}
+
+/* === Admin Contact Tab === */
+.contact-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--danger, #c0392b);
+  color: #fff;
+  font-size: 0.7rem;
+  font-weight: 700;
+  min-width: 18px;
+  height: 18px;
+  border-radius: 9px;
+  padding: 0 5px;
+  margin-left: 6px;
+}
+.contact-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+.contact-card {
+  background: var(--bg-card, #fff);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+  transition: box-shadow 0.15s;
+}
+.contact-card:hover {
+  box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+}
+.contact-unread {
+  border-left: 3px solid var(--accent);
+}
+.contact-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-3);
+  cursor: pointer;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+}
+.contact-card-meta {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+}
+.contact-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--accent);
+  flex-shrink: 0;
+}
+.contact-card-right {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+}
+.contact-card-body {
+  padding: 0 var(--space-3) var(--space-3);
+  border-top: 1px solid var(--border);
 }
 
 /* === Accessibility === */

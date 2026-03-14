@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
 import ResultActions from '../components/ResultActions';
 import { parseShareFromURL } from '../utils/shareLink';
 
@@ -11,6 +12,7 @@ const CONVERSION_TYPES = [
 ];
 
 export default function MaalKonverter() {
+  const location = useLocation();
   const [convType, setConvType] = useState('tommer-mm');
   const [valueA, setValueA] = useState('');
   const [valueB, setValueB] = useState('');
@@ -21,8 +23,28 @@ export default function MaalKonverter() {
   const conv = CONVERSION_TYPES.find(c => c.id === convType);
   const isPlader = convType === 'm2-plader';
 
-  // Check for share data on mount
+  // Check for saved item or share data on mount
   useEffect(() => {
+    const saved = location.state?.savedItem;
+    if (saved?.inputs) {
+      const inp = saved.inputs;
+      const p = (v) => v ? v.replace(/[^\d.,]/g, '').replace(',', '.') : '';
+      // Find matching conversion type by label
+      if (inp['Type']) {
+        const match = CONVERSION_TYPES.find(c => c.label === inp['Type']);
+        if (match) setConvType(match.id);
+      }
+      if (inp['Areal']) setValueA(p(inp['Areal']));
+      if (inp['Pladebredde']) setPlateWidth(p(inp['Pladebredde']));
+      if (inp['Pladehøjde']) setPlateHeight(p(inp['Pladehøjde']));
+      // For non-plader types, look for unit-based keys
+      const matchedConv = CONVERSION_TYPES.find(c => c.label === inp['Type']);
+      if (matchedConv && matchedConv.id !== 'm2-plader') {
+        if (inp[matchedConv.unitA]) setValueA(String(inp[matchedConv.unitA]));
+        if (inp[matchedConv.unitB]) setValueB(String(inp[matchedConv.unitB]));
+      }
+      return;
+    }
     const shared = parseShareFromURL();
     if (shared && shared.inputs) {
       const inp = shared.inputs;

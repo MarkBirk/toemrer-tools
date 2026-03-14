@@ -1,3 +1,4 @@
+import { Link } from 'react-router-dom';
 import './LandingPage.css';
 
 const testimonials = [
@@ -60,7 +61,7 @@ const features = [
   },
 ];
 
-export default function LandingPage({ onScrollToTools, onOpenAuth }) {
+export default function LandingPage({ onOpenAuth }) {
   return (
     <div className="landing">
       {/* Hero */}
@@ -72,9 +73,9 @@ export default function LandingPage({ onScrollToTools, onOpenAuth }) {
           Alt gemmes lokalt — ingen login nødvendigt.
         </p>
         <div className="landing-cta-row">
-          <button className="btn btn-primary btn-lg" onClick={onScrollToTools}>
+          <Link to="/vaerktoejer" className="btn btn-primary btn-lg">
             Se alle værktøjer
-          </button>
+          </Link>
           <button className="btn btn-secondary btn-lg" onClick={onOpenAuth}>
             Opret gratis konto
           </button>

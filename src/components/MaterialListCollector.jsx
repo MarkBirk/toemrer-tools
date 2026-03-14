@@ -123,7 +123,6 @@ export default function MaterialListCollector() {
           <div className="action-buttons mt-2">
             <button onClick={() => downloadPDF(data)} className="btn btn-sm">PDF</button>
             <button onClick={() => downloadCSV(data.materialList)} className="btn btn-sm">CSV</button>
-            <button onClick={() => downloadJSON(data)} className="btn btn-sm">JSON</button>
             <button onClick={() => { copyText(data); flash('Kopieret!'); }} className="btn btn-sm">Kopiér</button>
             <button onClick={() => setShowEmail(!showEmail)} className="btn btn-sm btn-primary">E-mail</button>
             <button onClick={handleClear} className="btn btn-sm btn-danger">Ryd alt</button>

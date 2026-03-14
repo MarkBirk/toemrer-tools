@@ -89,6 +89,10 @@ export default function AdminPanel() {
 
       <div className="tab-bar">
         <button className={`tab-btn ${tab === 'users' ? 'active' : ''}`} onClick={() => setTab('users')}>Brugere</button>
+        <button className={`tab-btn ${tab === 'henvendelser' ? 'active' : ''}`} onClick={() => setTab('henvendelser')}>
+          Henvendelser
+          {(() => { const c = (settings.contactMessages || []).filter(m => !m.laest).length; return c > 0 ? <span className="contact-badge">{c}</span> : null; })()}
+        </button>
         <button className={`tab-btn ${tab === 'seo' ? 'active' : ''}`} onClick={() => setTab('seo')}>SEO</button>
         <button className={`tab-btn ${tab === 'calc' ? 'active' : ''}`} onClick={() => setTab('calc')}>Beregninger</button>
         <button className={`tab-btn ${tab === 'scripts' ? 'active' : ''}`} onClick={() => setTab('scripts')}>Scripts</button>
@@ -97,6 +101,9 @@ export default function AdminPanel() {
 
       {tab === 'users' && (
         <UsersTab showMessage={showMessage} />
+      )}
+      {tab === 'henvendelser' && (
+        <ContactTab settings={settings} setSettings={setSettings} showMessage={showMessage} />
       )}
       {tab === 'seo' && (
         <SeoTab settings={settings} setSettings={setSettings} showMessage={showMessage} />
@@ -817,6 +824,187 @@ function UsersTab({ showMessage }) {
           </div>
         )}
       </div>
+    </div>
+  );
+}
+
+// ─── Contact / Henvendelser Tab ──────────────────────
+function ContactTab({ settings, setSettings, showMessage }) {
+  const [expandedId, setExpandedId] = useState(null);
+  const [replyId, setReplyId] = useState(null);
+  const [replyText, setReplyText] = useState('');
+  const [replySending, setReplySending] = useState(false);
+
+  const messages = settings.contactMessages || [];
+
+  function updateMessages(newMessages) {
+    const updated = updateAdminSettings({ contactMessages: newMessages });
+    setSettings(updated);
+  }
+
+  function toggleRead(id) {
+    const newMessages = messages.map(m =>
+      m.id === id ? { ...m, laest: !m.laest } : m
+    );
+    updateMessages(newMessages);
+  }
+
+  function handleDelete(id) {
+    if (!confirm('Slet denne henvendelse?')) return;
+    updateMessages(messages.filter(m => m.id !== id));
+    showMessage('Henvendelse slettet.');
+  }
+
+  function toggleExpand(id) {
+    setExpandedId(expandedId === id ? null : id);
+    if (replyId === id) { setReplyId(null); setReplyText(''); }
+  }
+
+  function openReply(msg) {
+    setReplyId(msg.id);
+    setReplyText('');
+    setExpandedId(msg.id);
+  }
+
+  async function sendReply(msg) {
+    if (!replyText.trim()) return;
+    const adminToken = settings.emailAdminToken || '';
+    const apiUrl = settings.emailApiUrl || '/api';
+
+    if (!adminToken || !apiUrl) {
+      // Fallback: mailto
+      const subject = encodeURIComponent(`Re: ${msg.emne} — HåndværkerTools`);
+      const body = encodeURIComponent(replyText);
+      window.open(`mailto:${msg.email}?subject=${subject}&body=${body}`, '_blank');
+      // Markér som besvaret
+      const newMessages = messages.map(m =>
+        m.id === msg.id ? { ...m, besvaret: true, laest: true } : m
+      );
+      updateMessages(newMessages);
+      setReplyId(null);
+      setReplyText('');
+      showMessage('Mailto åbnet — markeret som besvaret.');
+      return;
+    }
+
+    setReplySending(true);
+    try {
+      const res = await fetch(`${apiUrl}/send-email`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-admin-token': adminToken },
+        body: JSON.stringify({
+          to: [msg.email],
+          subject: `Re: ${msg.emne} — HåndværkerTools`,
+          html: `<p>${replyText.replace(/\n/g, '<br>')}</p><hr><p><em>Oprindelig henvendelse fra ${msg.navn}:</em></p><p>${msg.besked.replace(/\n/g, '<br>')}</p>`,
+          text: replyText + '\n\n---\nOprindelig henvendelse:\n' + msg.besked,
+        })
+      });
+      const json = await res.json();
+      if (json.success) {
+        const newMessages = messages.map(m =>
+          m.id === msg.id ? { ...m, besvaret: true, laest: true } : m
+        );
+        updateMessages(newMessages);
+        setReplyId(null);
+        setReplyText('');
+        showMessage('Svar sendt!');
+      } else {
+        showMessage(json.error || 'Kunne ikke sende.', 'error');
+      }
+    } catch {
+      showMessage('Serverfejl — prøv mailto i stedet.', 'error');
+    }
+    setReplySending(false);
+  }
+
+  function formatDate(iso) {
+    if (!iso) return '';
+    const d = new Date(iso);
+    return d.toLocaleDateString('da-DK', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+  }
+
+  const ulaesteCount = messages.filter(m => !m.laest).length;
+
+  return (
+    <div className="admin-tab-content">
+      <div className="admin-tab-header">
+        <p className="text-muted">
+          {messages.length} henvendelse{messages.length !== 1 ? 'r' : ''} total
+          {ulaesteCount > 0 && ` · ${ulaesteCount} ulæst${ulaesteCount !== 1 ? 'e' : ''}`}
+        </p>
+        {messages.length > 0 && (
+          <button className="btn btn-sm btn-secondary" onClick={() => {
+            const newMessages = messages.map(m => ({ ...m, laest: true }));
+            updateMessages(newMessages);
+            showMessage('Alle markeret som læst.');
+          }}>
+            Markér alle som læst
+          </button>
+        )}
+      </div>
+
+      {messages.length === 0 ? (
+        <div className="card">
+          <p className="text-muted">Ingen henvendelser endnu.</p>
+        </div>
+      ) : (
+        <div className="contact-list">
+          {messages.map(msg => (
+            <div key={msg.id} className={`contact-card ${!msg.laest ? 'contact-unread' : ''} ${expandedId === msg.id ? 'contact-expanded' : ''}`}>
+              <div className="contact-card-header" onClick={() => toggleExpand(msg.id)}>
+                <div className="contact-card-meta">
+                  {!msg.laest && <span className="contact-dot" />}
+                  <strong>{msg.navn}</strong>
+                  <span className="text-muted">{msg.email}</span>
+                </div>
+                <div className="contact-card-right">
+                  <span className="badge">{msg.emne}</span>
+                  {msg.besvaret && <span className="badge" style={{ background: 'var(--accent)', color: '#fff' }}>Besvaret</span>}
+                  <small className="text-muted">{formatDate(msg.dato)}</small>
+                </div>
+              </div>
+
+              {expandedId === msg.id && (
+                <div className="contact-card-body">
+                  <p style={{ whiteSpace: 'pre-wrap', lineHeight: 1.6 }}>{msg.besked}</p>
+
+                  <div className="action-buttons" style={{ marginTop: '1rem' }}>
+                    <button className="btn btn-xs" onClick={() => toggleRead(msg.id)}>
+                      {msg.laest ? 'Markér ulæst' : 'Markér læst'}
+                    </button>
+                    <button className="btn btn-xs btn-primary" onClick={() => openReply(msg)}>
+                      Svar
+                    </button>
+                    <button className="btn btn-xs btn-danger" onClick={() => handleDelete(msg.id)}>
+                      Slet
+                    </button>
+                  </div>
+
+                  {replyId === msg.id && (
+                    <div style={{ marginTop: '1rem' }}>
+                      <textarea
+                        className="input"
+                        rows={4}
+                        value={replyText}
+                        onChange={e => setReplyText(e.target.value)}
+                        placeholder={`Svar til ${msg.email}...`}
+                      />
+                      <div className="action-buttons" style={{ marginTop: '0.5rem' }}>
+                        <button className="btn btn-sm btn-primary" onClick={() => sendReply(msg)} disabled={replySending}>
+                          {replySending ? 'Sender...' : 'Send svar'}
+                        </button>
+                        <button className="btn btn-sm btn-secondary" onClick={() => { setReplyId(null); setReplyText(''); }}>
+                          Annuller
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

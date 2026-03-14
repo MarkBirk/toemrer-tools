@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getSavedItems, deleteItem, duplicateItem } from '../utils/storage';
-import { downloadPDF, downloadJSON } from '../utils/exportUtils';
-import { formatDate } from '../utils/exportUtils';
+import { downloadPDF, downloadJSON, formatDate } from '../utils/exportUtils';
+import { isFeatureLocked } from '../services/pro';
+import ProBadge from './ProBadge';
 
 const toolLabels = {
   materialeberegner: 'Materialeberegner',
@@ -75,8 +76,15 @@ export default function SavedItems({ filterType }) {
             </div>
           )}
           <div className="saved-card-actions">
-            <button onClick={() => downloadPDF(item)} className="btn btn-xs">PDF</button>
-            <button onClick={() => downloadJSON(item)} className="btn btn-xs">JSON</button>
+            <button onClick={() => navigate(`/${item.toolType}`, { state: { savedItem: item } })} className="btn btn-xs btn-primary">Åbn</button>
+            {isFeatureLocked('pdf_export') ? (
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                <span className="btn btn-xs btn-disabled">PDF</span>
+                <ProBadge />
+              </span>
+            ) : (
+              <button onClick={() => downloadPDF(item)} className="btn btn-xs">PDF</button>
+            )}
             <button onClick={() => handleDuplicate(item.id)} className="btn btn-xs">Duplikér</button>
             <button onClick={() => handleDelete(item.id)} className="btn btn-xs btn-danger">Slet</button>
           </div>

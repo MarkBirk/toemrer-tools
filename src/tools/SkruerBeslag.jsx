@@ -1,9 +1,11 @@
 import { useState, useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
 import ResultActions from '../components/ResultActions';
 import { parseShareFromURL } from '../utils/shareLink';
 import { getCalcDefaults } from '../utils/calcDefaults';
 
 export default function SkruerBeslag() {
+  const location = useLocation();
   const d = getCalcDefaults().skruer;
   const [activeTab, setActiveTab] = useState('terrasse');
 
@@ -22,6 +24,24 @@ export default function SkruerBeslag() {
   const [materialList, setMaterialList] = useState(null);
 
   useEffect(() => {
+    const saved = location.state?.savedItem;
+    if (saved?.inputs) {
+      const inp = saved.inputs;
+      const p = (v) => v ? v.replace(/[^\d.,]/g, '').replace(',', '.') : '';
+      if (inp['Type'] === 'Terrasse') {
+        setActiveTab('terrasse');
+        if (inp['Areal']) setTerrasseArea(p(inp['Areal']));
+        if (inp['Bræddebredde']) setBoardWidth(p(inp['Bræddebredde']));
+        if (inp['Bjælkeafstand']) setJoistSpacing(p(inp['Bjælkeafstand']));
+        if (inp['Skruer pr. krydsning']) setScrewsPerCrossing(inp['Skruer pr. krydsning']);
+      } else if (inp['Type'] === 'Gips') {
+        setActiveTab('gips');
+        if (inp['Vægareal']) setGipsArea(p(inp['Vægareal']));
+        if (inp['Skruer pr. m²']) setScrewsPerM2(inp['Skruer pr. m²']);
+        if (inp['Antal lag']) setLayers(inp['Antal lag']);
+      }
+      return;
+    }
     const shared = parseShareFromURL();
     if (shared && shared.inputs) {
       const inp = shared.inputs;

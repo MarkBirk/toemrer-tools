@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
+import { useLocation } from 'react-router-dom';
 import ResultActions from '../components/ResultActions';
 import AffiliateLinks from '../components/AffiliateLinks';
 import { parseShareFromURL } from '../utils/shareLink';
@@ -45,6 +46,7 @@ function defaultIsolering() {
 }
 
 export default function Materialeberegner() {
+  const location = useLocation();
   const [tab, setTab] = useState('terrasse');
 
   // Terrasse state
@@ -59,8 +61,46 @@ export default function Materialeberegner() {
   const [isolering, setIsolering] = useState(defaultIsolering);
   const [isoleringResults, setIsoleringResults] = useState(null);
 
-  // Load shared data on mount
+  // Load saved item or shared data on mount
   useEffect(() => {
+    const saved = location.state?.savedItem;
+    if (saved?.inputs) {
+      const inp = saved.inputs;
+      const p = (v) => v ? v.replace(/[^\d.,]/g, '').replace(',', '.') : '';
+      if (inp['Type'] === 'Terrasse') {
+        setTab('terrasse');
+        setTerrasse(prev => ({
+          ...prev,
+          length: p(inp['Længde']),
+          width: p(inp['Bredde']),
+          boardWidth: p(inp['Bræddebredde']),
+          boardGap: p(inp['Mellemrum']),
+          joistSpacing: p(inp['Strøafstand']),
+          waste: p(inp['Spild']),
+        }));
+      } else if (inp['Type'] === 'Væg / Reglar') {
+        setTab('vaeg');
+        setVaeg(prev => ({
+          ...prev,
+          wallLength: p(inp['Væglængde']),
+          wallHeight: p(inp['Væghøjde']),
+          studSpacing: p(inp['Regelafstand']),
+          platesPerSide: inp['Plader pr. side'] || prev.platesPerSide,
+          plateWidth: p(inp['Pladebredde']),
+          plateHeight: p(inp['Pladehøjde']),
+        }));
+      } else if (inp['Type'] === 'Isolering') {
+        setTab('isolering');
+        setIsolering(prev => ({
+          ...prev,
+          area: p(inp['Areal']),
+          thickness: p(inp['Tykkelse']),
+          packageCoverage: p(inp['Pakkedækning']),
+          waste: p(inp['Spild']),
+        }));
+      }
+      return;
+    }
     const shared = parseShareFromURL();
     if (!shared || !shared.inputs) return;
     const inp = shared.inputs;

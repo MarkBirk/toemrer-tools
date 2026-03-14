@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
 import ResultActions from '../components/ResultActions';
 import { parseShareFromURL } from '../utils/shareLink';
 import { getCalcDefaults } from '../utils/calcDefaults';
@@ -10,6 +11,7 @@ const COLORS = [
 ];
 
 export default function Skaereplan() {
+  const location = useLocation();
   const d = getCalcDefaults().skaereplan;
   const [raaLaengde, setRaaLaengde] = useState(String(d.raaLaengde));
   const [snitBredde, setSnitBredde] = useState(String(d.snitBredde));
@@ -19,6 +21,22 @@ export default function Skaereplan() {
   const [results, setResults] = useState(null);
 
   useEffect(() => {
+    const saved = location.state?.savedItem;
+    if (saved?.inputs) {
+      const inp = saved.inputs;
+      const p = (v) => v ? v.replace(/[^\d.,]/g, '').replace(',', '.') : '';
+      if (inp['Rålængde']) setRaaLaengde(p(inp['Rålængde']));
+      if (inp['Snitbredde']) setSnitBredde(p(inp['Snitbredde']));
+      if (inp['Emner']) {
+        // Parse "600 mm × 4 stk, 300 mm × 2 stk" back into stykker array
+        const parsed = inp['Emner'].split(',').map(s => {
+          const match = s.trim().match(/(\d+)\s*mm\s*×\s*(\d+)\s*stk/);
+          return match ? { laengde: parseInt(match[1], 10), antal: parseInt(match[2], 10) } : null;
+        }).filter(Boolean);
+        if (parsed.length > 0) setStykker(parsed);
+      }
+      return;
+    }
     const shared = parseShareFromURL();
     if (shared && shared.inputs) {
       const inp = shared.inputs;

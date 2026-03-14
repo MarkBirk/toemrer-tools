@@ -1,5 +1,6 @@
 import { Routes, Route } from 'react-router-dom';
-import { useState, useRef } from 'react';
+import { useState } from 'react';
+import { getAdminSettings, updateAdminSettings } from './utils/storage';
 import Layout from './components/Layout';
 import SEO from './components/SEO';
 import LandingPage from './components/LandingPage';
@@ -11,6 +12,8 @@ import MaterialListCollector from './components/MaterialListCollector';
 import AdminPanel from './components/AdminPanel';
 import FAQ from './components/FAQ';
 import { homeFaq, toolFaqs } from './data/faqData';
+import tools from './data/tools';
+import ToolsPage from './pages/ToolsPage';
 
 import Materialeberegner from './tools/Materialeberegner';
 import Taghaeldning from './tools/Taghaeldning';
@@ -27,36 +30,15 @@ import ByggeRegler from './tools/ByggeRegler';
 import TimeTracker from './tools/TimeTracker';
 import DocChecklist from './tools/DocChecklist';
 
-const tools = [
-  { path: 'materialeberegner', title: 'Materialeberegner', description: 'Terrasse, væg/reglar, isolering', seoDesc: 'Beregn materialer til terrasse, vægge og isolering. Få brædder, strøer, skruer, reglar og isolering med spild%.' },
-  { path: 'taghaeldning', title: 'Taghældning', description: 'Grader, procent, 1:X', seoDesc: 'Beregn taghældning i grader, procent og 1:X forholdstal ud fra højdeforskel og vandret længde.' },
-  { path: 'spaer-laengde', title: 'Spærlængde', description: 'Pythagoras: spænd → længde', seoDesc: 'Beregn spærlængde med Pythagoras. Indtast spænd og højde – få spærlængde og kiphøjde.' },
-  { path: 'skruer-beslag', title: 'Skruer/Beslag', description: 'Estimér skruer til terrasse/gips', seoDesc: 'Estimér antal skruer til terrasse og gipsvægge ud fra areal og standardregler.' },
-  { path: 'maal-konverter', title: 'Mål-konverter', description: 'Tommer, mm, cm, m, m²↔plader', seoDesc: 'Konvertér mellem tommer, mm, cm, meter og beregn antal plader ud fra m².' },
-  { path: 'tilbudsberegner', title: 'Tilbudsberegner', description: 'Materialer + timer → tilbud', seoDesc: 'Beregn tilbudspris med materialer, arbejdstimer, avance og moms. Generér tilbudstekst.' },
-  { path: 'materialeliste', title: 'Materialeliste', description: 'Opbyg og eksportér materialeliste', seoDesc: 'Opbyg en materialeliste manuelt eller fra beregninger. Eksportér som PDF, CSV eller JSON.' },
-  { path: 'standardmaal', title: 'Standardmål', description: 'Husketabel: træ, plader, skruer m.m.', seoDesc: 'Opslagstabel med standardmål for tømrermaterialer: træ, plader, skruer, isolering, afstande.' },
-  { path: 'bygge-noter', title: 'Bygge-noter', description: 'Noter pr. projekt, gemt lokalt', seoDesc: 'Skriv og organiser noter per byggeprojekt. Gemt lokalt i din browser.' },
-  { path: 'vaegt-beregner', title: 'Hvad vejer det?', description: 'Vægt af træ, plader, beton m.m.', seoDesc: 'Beregn vægten af træ, plader, beton og stål ud fra dimensioner og materialetype.' },
-  { path: 'skaereplan', title: 'Skæreplan', description: 'Optimér skæring, minimér spild', seoDesc: 'Optimér skæring af brædder og plader. Minimér spild med automatisk skæreplan.' },
-  { path: 'bygge-regler', title: 'Bygge-regler', description: 'Ofte brugte regler/krav (reference)', seoDesc: 'Hurtig opslagsbog med danske byggeregler: BR18, skel, brand, isolering, vådrum m.m.' },
-  { path: 'tidsregistrering', title: 'Tidsregistrering', description: 'Start/stop timer pr. sag', seoDesc: 'Registrér arbejdstimer pr. sag med start/stop timer. Akkumulér tid og eksportér til tilbudsberegner.' },
-  { path: 'dokumentation', title: 'Dokumentation', description: 'Fotodokumentation-tjekliste', seoDesc: 'Systematisk tjekliste til fotodokumentation af byggeprojekter. Før, under og efter arbejdet.' },
-];
 
 function Home() {
   const [search, setSearch] = useState('');
   const [showAuth, setShowAuth] = useState(null);
-  const toolsSectionRef = useRef(null);
   const filtered = tools.filter(t =>
     !search ||
     t.title.toLowerCase().includes(search.toLowerCase()) ||
     t.description.toLowerCase().includes(search.toLowerCase())
   );
-
-  function scrollToTools() {
-    toolsSectionRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }
 
   return (
     <div className="home-page">
@@ -65,9 +47,9 @@ function Home() {
         description="14 gratis online værktøjer til håndværkere: materialeberegner, taghældning, skæreplan, tilbudsberegner, tidsregistrering, dokumentation og mere."
         path="/"
       />
-      <LandingPage onScrollToTools={scrollToTools} onOpenAuth={() => setShowAuth('signup')} />
+      <LandingPage onOpenAuth={() => setShowAuth('signup')} />
       <div className="landing-divider" />
-      <div ref={toolsSectionRef} className="search-bar">
+      <div className="search-bar">
         <input
           type="text"
           value={search}
@@ -119,25 +101,104 @@ function Privatlivspolitik() {
 }
 
 function Kontakt() {
+  const [form, setForm] = useState({ navn: '', email: '', emne: 'Spørgsmål', besked: '' });
+  const [sending, setSending] = useState(false);
+  const [sent, setSent] = useState(false);
+  const [error, setError] = useState('');
+
+  function handleChange(e) {
+    setForm(prev => ({ ...prev, [e.target.name]: e.target.value }));
+  }
+
+  function handleSubmit(e) {
+    e.preventDefault();
+    setError('');
+    if (!form.navn.trim() || !form.email.trim() || !form.besked.trim()) {
+      setError('Udfyld venligst alle felter.');
+      return;
+    }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) {
+      setError('Ugyldig e-mailadresse.');
+      return;
+    }
+    setSending(true);
+    try {
+      const settings = getAdminSettings();
+      const messages = settings.contactMessages || [];
+      const newMsg = {
+        id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
+        navn: form.navn.trim(),
+        email: form.email.trim(),
+        emne: form.emne,
+        besked: form.besked.trim(),
+        dato: new Date().toISOString(),
+        laest: false,
+        besvaret: false,
+      };
+      messages.unshift(newMsg);
+      updateAdminSettings({ contactMessages: messages });
+      setSent(true);
+    } catch {
+      setError('Noget gik galt. Prøv igen.');
+    }
+    setSending(false);
+  }
+
+  if (sent) {
+    return (
+      <div className="tool-page">
+        <SEO title="Kontakt" description="Kontakt HåndværkerTools med spørgsmål, feedback eller fejlmeldinger." path="/kontakt" />
+        <h1>Kontakt</h1>
+        <div className="card contact-success">
+          <h2>Tak for din henvendelse!</h2>
+          <p>Vi har modtaget din besked og vender tilbage hurtigst muligt.</p>
+          <button className="btn btn-primary" onClick={() => { setSent(false); setForm({ navn: '', email: '', emne: 'Spørgsmål', besked: '' }); }}>
+            Send en ny besked
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="tool-page">
       <SEO title="Kontakt" description="Kontakt HåndværkerTools med spørgsmål, feedback eller fejlmeldinger." path="/kontakt" />
       <h1>Kontakt</h1>
-      <div className="card" style={{ lineHeight: 1.7 }}>
-        <p>Har du spørgsmål, feedback eller har du fundet en fejl? Du er velkommen til at kontakte os.</p>
+      <div className="card">
+        <p>Har du spørgsmål, feedback eller har du fundet en fejl? Udfyld formularen herunder, så vender vi tilbage hurtigst muligt.</p>
 
-        <div style={{ margin: '1.5rem 0' }}>
-          <div className="result-row">
-            <span>E-mail</span>
-            <strong><a href="mailto:kontakt@toemrertools.dk" style={{ color: 'var(--accent)' }}>kontakt@toemrertools.dk</a></strong>
+        <form className="contact-form" onSubmit={handleSubmit}>
+          <div className="form-group">
+            <label>Navn *</label>
+            <input type="text" name="navn" className="input" value={form.navn} onChange={handleChange} placeholder="Dit navn" />
           </div>
-        </div>
 
-        <h2>Feedback</h2>
-        <p>Vi udvikler løbende nye værktøjer og forbedrer de eksisterende. Har du et ønske til et nyt beregningsværktøj eller en funktion, så skriv endelig.</p>
+          <div className="form-group">
+            <label>E-mail *</label>
+            <input type="email" name="email" className="input" value={form.email} onChange={handleChange} placeholder="din@email.dk" />
+          </div>
 
-        <h2>Fejl og problemer</h2>
-        <p>Oplever du en fejl i en beregning eller noget der ikke virker som forventet, vil vi meget gerne høre om det, så vi kan rette det hurtigst muligt.</p>
+          <div className="form-group">
+            <label>Emne</label>
+            <select name="emne" className="input" value={form.emne} onChange={handleChange}>
+              <option value="Spørgsmål">Spørgsmål</option>
+              <option value="Feedback">Feedback</option>
+              <option value="Fejlmelding">Fejlmelding</option>
+              <option value="Andet">Andet</option>
+            </select>
+          </div>
+
+          <div className="form-group">
+            <label>Besked *</label>
+            <textarea name="besked" className="input" rows={5} value={form.besked} onChange={handleChange} placeholder="Skriv din besked her..." />
+          </div>
+
+          {error && <div className="action-msg" style={{ color: 'var(--danger)', marginBottom: '0.5rem' }}>{error}</div>}
+
+          <button type="submit" className="btn btn-primary" disabled={sending}>
+            {sending ? 'Sender...' : 'Send besked'}
+          </button>
+        </form>
       </div>
     </div>
   );
@@ -185,6 +246,7 @@ export default function App() {
         <Route path="/privatlivspolitik" element={<Privatlivspolitik />} />
         <Route path="/kontakt" element={<Kontakt />} />
         <Route path="/admin" element={<AdminPanel />} />
+        <Route path="/vaerktoejer" element={<ToolsPage />} />
         {tools.map(t => (
           <Route
             key={t.path}

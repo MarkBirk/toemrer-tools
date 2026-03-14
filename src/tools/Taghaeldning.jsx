@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
 import ResultActions from '../components/ResultActions';
 import { parseShareFromURL } from '../utils/shareLink';
 
@@ -8,13 +9,26 @@ const UNITS = [
 ];
 
 export default function Taghaeldning() {
+  const location = useLocation();
   const [height, setHeight] = useState('');
   const [length, setLength] = useState('');
   const [unit, setUnit] = useState('mm');
   const [results, setResults] = useState(null);
 
-  // Load shared data on mount
+  // Load saved item or shared data on mount
   useEffect(() => {
+    const saved = location.state?.savedItem;
+    if (saved?.inputs) {
+      const inp = saved.inputs;
+      const p = (v) => v ? v.replace(/[^\d.,]/g, '').replace(',', '.') : '';
+      if (inp['Højdeforskel']) setHeight(p(inp['Højdeforskel']));
+      if (inp['Vandret længde']) setLength(p(inp['Vandret længde']));
+      // Detect unit from saved string
+      if (inp['Højdeforskel'] && inp['Højdeforskel'].includes(' m')) {
+        setUnit(inp['Højdeforskel'].trim().endsWith('mm') ? 'mm' : 'm');
+      }
+      return;
+    }
     const shared = parseShareFromURL();
     if (!shared || !shared.inputs) return;
     const inp = shared.inputs;

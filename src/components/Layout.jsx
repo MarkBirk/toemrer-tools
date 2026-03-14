@@ -7,7 +7,7 @@ import { useAuth } from '../contexts/AuthContext';
 const navItems = [
   { path: '/', label: 'Hjem', icon: '⌂' },
   { path: '/gemte', label: 'Gemte beregninger', icon: '★' },
-  { path: '/samlet-liste', label: 'Samlet materialeliste', icon: '☰' },
+  { path: '/materialeliste', label: 'Materialelister', icon: '☰' },
   { path: '/tidsregistrering', label: 'Tidsregistrering', icon: '⏱' },
 ];
 
@@ -72,23 +72,13 @@ export default function Layout({ children }) {
             {item.label}
           </Link>
         ))}
-        <button
-          className="slide-menu-item"
-          onClick={() => {
-            setMenuOpen(false);
-            if (isHome) {
-              document.querySelector('.search-bar')?.scrollIntoView({ behavior: 'smooth' });
-            } else {
-              navigate('/');
-              setTimeout(() => {
-                document.querySelector('.search-bar')?.scrollIntoView({ behavior: 'smooth' });
-              }, 100);
-            }
-          }}
+        <Link
+          to="/vaerktoejer"
+          className={`slide-menu-item ${location.pathname === '/vaerktoejer' ? 'active' : ''}`}
         >
           <span className="slide-menu-icon">▦</span>
           Alle værktøjer
-        </button>
+        </Link>
       </nav>
 
       <main className="app-main">{children}</main>

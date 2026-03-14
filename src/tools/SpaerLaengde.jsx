@@ -1,8 +1,10 @@
 import { useState, useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
 import ResultActions from '../components/ResultActions';
 import { parseShareFromURL } from '../utils/shareLink';
 
 export default function SpaerLaengde() {
+  const location = useLocation();
   const [span, setSpan] = useState('');
   const [inputMode, setInputMode] = useState('hoejde'); // 'hoejde' or 'haeldning'
   const [hoejde, setHoejde] = useState('');
@@ -10,6 +12,20 @@ export default function SpaerLaengde() {
   const [results, setResults] = useState(null);
 
   useEffect(() => {
+    const saved = location.state?.savedItem;
+    if (saved?.inputs) {
+      const inp = saved.inputs;
+      const p = (v) => v ? v.replace(/[^\d.,]/g, '').replace(',', '.') : '';
+      if (inp['Spænd']) setSpan(p(inp['Spænd']));
+      if (inp['Beregningsmetode'] === 'Højde') {
+        setInputMode('hoejde');
+        if (inp['Højde']) setHoejde(p(inp['Højde']));
+      } else if (inp['Beregningsmetode'] === 'Hældning') {
+        setInputMode('haeldning');
+        if (inp['Hældning']) setHaeldning(p(inp['Hældning']));
+      }
+      return;
+    }
     const shared = parseShareFromURL();
     if (shared && shared.inputs) {
       const inp = shared.inputs;
