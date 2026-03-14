@@ -1,6 +1,8 @@
 import { useState, useEffect, useRef } from 'react';
 import { getAdminSettings, updateAdminSettings, resetAdminSettings } from '../utils/storage';
 import { CALC_DEFAULTS, getCalcDefaults } from '../utils/calcDefaults';
+import { useAuth } from '../contexts/AuthContext';
+import { apiGet, apiPatch } from '../services/api';
 
 // Admin-adgangskode sættes som env-variabel i Netlify
 const ADMIN_PASSWORD = import.meta.env.VITE_ADMIN_PASSWORD || '';
@@ -27,7 +29,7 @@ const ALL_PAGES = [
 export default function AdminPanel() {
   const [authenticated, setAuthenticated] = useState(false);
   const [settings, setSettings] = useState({});
-  const [tab, setTab] = useState('seo');
+  const [tab, setTab] = useState('users');
   const [message, setMessage] = useState(null);
   const importRef = useRef();
 
@@ -86,12 +88,16 @@ export default function AdminPanel() {
       )}
 
       <div className="tab-bar">
+        <button className={`tab-btn ${tab === 'users' ? 'active' : ''}`} onClick={() => setTab('users')}>Brugere</button>
         <button className={`tab-btn ${tab === 'seo' ? 'active' : ''}`} onClick={() => setTab('seo')}>SEO</button>
         <button className={`tab-btn ${tab === 'calc' ? 'active' : ''}`} onClick={() => setTab('calc')}>Beregninger</button>
         <button className={`tab-btn ${tab === 'scripts' ? 'active' : ''}`} onClick={() => setTab('scripts')}>Scripts</button>
         <button className={`tab-btn ${tab === 'settings' ? 'active' : ''}`} onClick={() => setTab('settings')}>Indstillinger</button>
       </div>
 
+      {tab === 'users' && (
+        <UsersTab showMessage={showMessage} />
+      )}
       {tab === 'seo' && (
         <SeoTab settings={settings} setSettings={setSettings} showMessage={showMessage} />
       )}
@@ -664,6 +670,152 @@ function CalcDefaultsTab({ settings, setSettings, showMessage }) {
             </div>
           </div>
         ))}
+      </div>
+    </div>
+  );
+}
+
+// ─── Users Tab ───────────────────────────────────────
+function UsersTab({ showMessage }) {
+  const { isAdmin } = useAuth();
+  const [users, setUsers] = useState([]);
+  const [stats, setStats] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    loadData();
+  }, []);
+
+  async function loadData() {
+    setLoading(true);
+    setError('');
+    try {
+      const [usersData, statsData] = await Promise.all([
+        apiGet('/api/admin/users'),
+        apiGet('/api/admin/stats'),
+      ]);
+      setUsers(usersData);
+      setStats(statsData);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function togglePro(userId) {
+    try {
+      await apiPatch(`/api/admin/users/${userId}/pro`);
+      showMessage('Pro-status opdateret.');
+      loadData();
+    } catch (err) {
+      showMessage(err.message, 'error');
+    }
+  }
+
+  async function toggleDisabled(userId) {
+    try {
+      await apiPatch(`/api/admin/users/${userId}/disable`);
+      showMessage('Bruger-status opdateret.');
+      loadData();
+    } catch (err) {
+      showMessage(err.message, 'error');
+    }
+  }
+
+  if (error) {
+    return (
+      <div className="admin-tab-content">
+        <div className="card">
+          <h3>Brugerstyring</h3>
+          <p className="text-muted">
+            {error.includes('503') || error.includes('Database')
+              ? 'Database ikke konfigureret. Tilføj DB_HOST, DB_USER, DB_PASS og DB_NAME som miljøvariabler.'
+              : error.includes('403')
+              ? 'Du skal være logget ind som admin (via Supabase/MySQL) for at se brugere.'
+              : error}
+          </p>
+          <button className="btn btn-secondary" onClick={loadData} style={{ marginTop: 12 }}>
+            Prøv igen
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  if (loading) {
+    return (
+      <div className="admin-tab-content">
+        <p className="text-muted">Indlæser brugere...</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="admin-tab-content">
+      {/* Stats */}
+      {stats && (
+        <div className="admin-stats-row">
+          <div className="card admin-stat-card">
+            <strong className="admin-stat-number">{stats.total}</strong>
+            <span className="admin-stat-label">Brugere i alt</span>
+          </div>
+          <div className="card admin-stat-card">
+            <strong className="admin-stat-number">{stats.pro}</strong>
+            <span className="admin-stat-label">Pro-brugere</span>
+          </div>
+          <div className="card admin-stat-card">
+            <strong className="admin-stat-number">{stats.recent}</strong>
+            <span className="admin-stat-label">Nye (30 dage)</span>
+          </div>
+          <div className="card admin-stat-card">
+            <strong className="admin-stat-number">{stats.waitlist}</strong>
+            <span className="admin-stat-label">Venteliste</span>
+          </div>
+        </div>
+      )}
+
+      {/* Users Table */}
+      <div className="card">
+        <h3>Brugerbasen ({users.length})</h3>
+        {users.length === 0 ? (
+          <p className="text-muted">Ingen brugere endnu.</p>
+        ) : (
+          <div className="admin-table-wrap">
+            <table className="admin-users-table">
+              <thead>
+                <tr>
+                  <th>E-mail</th>
+                  <th>Oprettet</th>
+                  <th>Seneste login</th>
+                  <th>Pro</th>
+                  <th>Status</th>
+                  <th>Handlinger</th>
+                </tr>
+              </thead>
+              <tbody>
+                {users.map(u => (
+                  <tr key={u.id} className={u.disabled ? 'admin-row-disabled' : ''}>
+                    <td>{u.email}</td>
+                    <td>{new Date(u.created_at).toLocaleDateString('da-DK')}</td>
+                    <td>{u.last_login ? new Date(u.last_login).toLocaleDateString('da-DK') : '–'}</td>
+                    <td>{u.pro_status ? 'Ja' : 'Nej'}</td>
+                    <td>{u.disabled ? 'Deaktiveret' : 'Aktiv'}</td>
+                    <td className="admin-actions-cell">
+                      <button className="btn btn-xs btn-secondary" onClick={() => togglePro(u.id)}>
+                        {u.pro_status ? 'Fjern Pro' : 'Giv Pro'}
+                      </button>
+                      <button className="btn btn-xs btn-danger" onClick={() => toggleDisabled(u.id)}>
+                        {u.disabled ? 'Aktivér' : 'Deaktivér'}
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
       </div>
     </div>
   );

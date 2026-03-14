@@ -2,6 +2,8 @@ import { useState } from 'react';
 import { saveItem, addToMaterialList, getAdminSettings } from '../utils/storage';
 import { downloadPDF, downloadCSV, downloadJSON, copyText, generateEmailHTML, getPDFBase64, generateTilbudPDF } from '../utils/exportUtils';
 import { copyShareLink } from '../utils/shareLink';
+import { isFeatureLocked } from '../services/pro';
+import ProBadge from './ProBadge';
 
 export default function ResultActions({ toolType, toolPath, title, inputs, results, materialList, notes, onSaved, tilbudDetaljer }) {
   const [saveTitle, setSaveTitle] = useState('');
@@ -73,7 +75,7 @@ export default function ResultActions({ toolType, toolPath, title, inputs, resul
         headers: { 'Content-Type': 'application/json', 'x-admin-token': adminToken },
         body: JSON.stringify({
           to: recipients,
-          subject: `Tømrer Tools: ${data.title}`,
+          subject: `HåndværkerTools: ${data.title}`,
           html: generateEmailHTML(data),
           text: '',
           pdfBase64,
@@ -94,7 +96,14 @@ export default function ResultActions({ toolType, toolPath, title, inputs, resul
       {msg && <div className="action-msg">{msg}</div>}
 
       <div className="action-buttons">
-        <button onClick={handleDownloadPDF} className="btn btn-sm">PDF</button>
+        {isFeatureLocked('pdf_export') ? (
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+            <span className="btn btn-sm btn-disabled">PDF</span>
+            <ProBadge />
+          </span>
+        ) : (
+          <button onClick={handleDownloadPDF} className="btn btn-sm">PDF</button>
+        )}
         {materialList && materialList.length > 0 && (
           <button onClick={() => downloadCSV(materialList)} className="btn btn-sm">CSV</button>
         )}

@@ -51,7 +51,7 @@ export default function Footer() {
             <Link to="/" className="footer-logo-link">
               <Logo />
               <span className="footer-logo-text">
-                Tømrer<span className="footer-logo-accent">Tools</span>
+                Håndværker<span className="footer-logo-accent">Tools</span>
               </span>
             </Link>
             <p className="footer-tagline">
@@ -95,7 +95,7 @@ export default function Footer() {
 
         <div className="footer-bottom">
           <p className="footer-copyright">
-            &copy; {new Date().getFullYear()} TømrerTools — Bygget med omtanke for danske håndværkere
+            &copy; {new Date().getFullYear()} HåndværkerTools — Bygget med omtanke for danske håndværkere
           </p>
           <div className="footer-bottom-links">
             <Link to="/privatlivspolitik" className="footer-bottom-link">Privatlivspolitik</Link>

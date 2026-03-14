@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import ResultActions from '../components/ResultActions';
+import AffiliateLinks from '../components/AffiliateLinks';
 import { parseShareFromURL } from '../utils/shareLink';
 import { addToMaterialList } from '../utils/storage';
 import { saveData, STORAGE_KEYS } from '../services/storage';
@@ -291,6 +292,7 @@ export default function MaterialelisteGenerator() {
               + Tilføj alle til samlet materialeliste
             </button>
           </div>
+          <AffiliateLinks />
         </div>
       )}
 

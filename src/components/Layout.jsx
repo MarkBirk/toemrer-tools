@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import Footer from './Footer';
+import AuthModal from './AuthModal';
+import { useAuth } from '../contexts/AuthContext';
 
 const navItems = [
   { path: '/', label: 'Hjem', icon: '⌂' },
@@ -11,6 +13,8 @@ const navItems = [
 
 export default function Layout({ children }) {
   const [menuOpen, setMenuOpen] = useState(false);
+  const [showAuth, setShowAuth] = useState(null); // null | 'login' | 'signup'
+  const { user, loading, signOut } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
   const isHome = location.pathname === '/';
@@ -28,7 +32,26 @@ export default function Layout({ children }) {
         >
           <span /><span /><span />
         </button>
-        <Link to="/" className="header-logo">Tømrer Tools</Link>
+        <Link to="/" className="header-logo">HåndværkerTools</Link>
+        <div className="header-auth-buttons">
+          {loading ? null : user ? (
+            <>
+              <span className="header-user-email">{user.email}</span>
+              <button className="btn btn-sm btn-ghost header-auth-btn" onClick={signOut}>
+                Log ud
+              </button>
+            </>
+          ) : (
+            <>
+              <button className="btn btn-sm btn-ghost header-auth-btn" onClick={() => setShowAuth('login')}>
+                Log ind
+              </button>
+              <button className="btn btn-sm btn-primary header-auth-btn" onClick={() => setShowAuth('signup')}>
+                Opret konto
+              </button>
+            </>
+          )}
+        </div>
         {!isHome && (
           <button className="back-btn" onClick={() => navigate(-1)} aria-label="Tilbage">
             ←
@@ -49,10 +72,34 @@ export default function Layout({ children }) {
             {item.label}
           </Link>
         ))}
+        <button
+          className="slide-menu-item"
+          onClick={() => {
+            setMenuOpen(false);
+            if (isHome) {
+              document.querySelector('.search-bar')?.scrollIntoView({ behavior: 'smooth' });
+            } else {
+              navigate('/');
+              setTimeout(() => {
+                document.querySelector('.search-bar')?.scrollIntoView({ behavior: 'smooth' });
+              }, 100);
+            }
+          }}
+        >
+          <span className="slide-menu-icon">▦</span>
+          Alle værktøjer
+        </button>
       </nav>
 
       <main className="app-main">{children}</main>
       <Footer />
+
+      {showAuth && (
+        <AuthModal
+          onClose={() => setShowAuth(null)}
+          initialMode={showAuth}
+        />
+      )}
     </div>
   );
 }

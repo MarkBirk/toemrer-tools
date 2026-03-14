@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import ResultActions from '../components/ResultActions';
+import AffiliateLinks from '../components/AffiliateLinks';
 import { parseShareFromURL } from '../utils/shareLink';
 import { getCalcDefaults } from '../utils/calcDefaults';
 
@@ -362,6 +363,7 @@ export default function Materialeberegner() {
                   ))}
                 </tbody>
               </table>
+              <AffiliateLinks />
             </div>
           )}
         </div>
@@ -430,6 +432,7 @@ export default function Materialeberegner() {
                   ))}
                 </tbody>
               </table>
+              <AffiliateLinks />
             </div>
           )}
         </div>
@@ -488,6 +491,7 @@ export default function Materialeberegner() {
                   ))}
                 </tbody>
               </table>
+              <AffiliateLinks />
             </div>
           )}
         </div>

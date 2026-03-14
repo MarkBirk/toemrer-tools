@@ -1,7 +1,7 @@
 {
-  "name": "Tømrer Tools",
-  "short_name": "TømrerTools",
-  "description": "Praktiske beregningsværktøjer til tømrere",
+  "name": "HåndværkerTools",
+  "short_name": "HåndværkerTools",
+  "description": "Praktiske beregningsværktøjer til håndværkere",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#F8F4EE",

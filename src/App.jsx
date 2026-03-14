@@ -1,7 +1,9 @@
 import { Routes, Route } from 'react-router-dom';
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import Layout from './components/Layout';
 import SEO from './components/SEO';
+import LandingPage from './components/LandingPage';
+import AuthModal from './components/AuthModal';
 import ScriptInjector from './components/ScriptInjector';
 import ToolCard from './components/ToolCard';
 import SavedItems from './components/SavedItems';
@@ -44,24 +46,28 @@ const tools = [
 
 function Home() {
   const [search, setSearch] = useState('');
+  const [showAuth, setShowAuth] = useState(null);
+  const toolsSectionRef = useRef(null);
   const filtered = tools.filter(t =>
     !search ||
     t.title.toLowerCase().includes(search.toLowerCase()) ||
     t.description.toLowerCase().includes(search.toLowerCase())
   );
 
+  function scrollToTools() {
+    toolsSectionRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }
+
   return (
     <div className="home-page">
       <SEO
         title={null}
-        description="14 gratis online værktøjer til tømrere: materialeberegner, taghældning, skæreplan, tilbudsberegner, tidsregistrering, dokumentation og mere."
+        description="14 gratis online værktøjer til håndværkere: materialeberegner, taghældning, skæreplan, tilbudsberegner, tidsregistrering, dokumentation og mere."
         path="/"
       />
-      <div className="home-header">
-        <h1>Tømrer Tools</h1>
-        <p>Praktiske beregningsværktøjer til tømreren</p>
-      </div>
-      <div className="search-bar">
+      <LandingPage onScrollToTools={scrollToTools} onOpenAuth={() => setShowAuth('signup')} />
+      <div className="landing-divider" />
+      <div ref={toolsSectionRef} className="search-bar">
         <input
           type="text"
           value={search}
@@ -80,6 +86,7 @@ function Home() {
       <div className="warning-box">
         <strong>Bemærk:</strong> Alle beregninger er vejledende og erstatter ikke professionel rådgivning. Tjek altid gældende bygningsreglement og konsultér en fagperson ved tvivl.
       </div>
+      {showAuth && <AuthModal onClose={() => setShowAuth(null)} initialMode={showAuth} />}
     </div>
   );
 }
@@ -87,11 +94,11 @@ function Home() {
 function Privatlivspolitik() {
   return (
     <div className="tool-page">
-      <SEO title="Privatlivspolitik" description="Læs om hvordan Tømrer Tools håndterer dine data." path="/privatlivspolitik" />
+      <SEO title="Privatlivspolitik" description="Læs om hvordan HåndværkerTools håndterer dine data." path="/privatlivspolitik" />
       <h1>Privatlivspolitik</h1>
       <div className="card" style={{ lineHeight: 1.7 }}>
         <h2>Dataindsamling</h2>
-        <p>Tømrer Tools indsamler <strong>ingen personlige oplysninger</strong>. Vi bruger ikke cookies, tracking eller analyse-værktøjer, medmindre det er aktiveret af siteadministratoren via admin-panelet (f.eks. Google Analytics).</p>
+        <p>HåndværkerTools indsamler <strong>ingen personlige oplysninger</strong>. Vi bruger ikke cookies, tracking eller analyse-værktøjer, medmindre det er aktiveret af siteadministratoren via admin-panelet (f.eks. Google Analytics).</p>
 
         <h2>Lokal lagring</h2>
         <p>Alle dine beregninger, materialelister og noter gemmes udelukkende i din browsers <strong>localStorage</strong>. Data forlader aldrig din enhed og sendes ikke til nogen server.</p>
@@ -114,7 +121,7 @@ function Privatlivspolitik() {
 function Kontakt() {
   return (
     <div className="tool-page">
-      <SEO title="Kontakt" description="Kontakt Tømrer Tools med spørgsmål, feedback eller fejlmeldinger." path="/kontakt" />
+      <SEO title="Kontakt" description="Kontakt HåndværkerTools med spørgsmål, feedback eller fejlmeldinger." path="/kontakt" />
       <h1>Kontakt</h1>
       <div className="card" style={{ lineHeight: 1.7 }}>
         <p>Har du spørgsmål, feedback eller har du fundet en fejl? Du er velkommen til at kontakte os.</p>

@@ -1,8 +1,9 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import ResultActions from '../components/ResultActions';
 import { saveData, getData, STORAGE_KEYS } from '../services/storage';
 
 const KEY = STORAGE_KEYS.DOC_CHECKLISTS;
+const MAX_BILLEDER = 3;
 
 const DEFAULT_KATEGORIER = [
   {
@@ -52,12 +53,43 @@ function generateId() {
   return Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
 }
 
+function compressImage(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        const maxWidth = 1200;
+        let w = img.width;
+        let h = img.height;
+        if (w > maxWidth) {
+          h = Math.round((h * maxWidth) / w);
+          w = maxWidth;
+        }
+        canvas.width = w;
+        canvas.height = h;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, w, h);
+        resolve(canvas.toDataURL('image/jpeg', 0.6));
+      };
+      img.onerror = reject;
+      img.src = e.target.result;
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
 export default function DocChecklist() {
   const [projekter, setProjekter] = useState(() => getData(KEY, []));
   const [aktivtProjektId, setAktivtProjektId] = useState(null);
   const [nytProjektNavn, setNytProjektNavn] = useState('');
   const [nytPunktTekst, setNytPunktTekst] = useState('');
   const [nytPunktKategori, setNytPunktKategori] = useState(0);
+  const [visBillede, setVisBillede] = useState(null); // { katIdx, punktId, billedeIdx }
+  const fileInputRef = useRef(null);
+  const uploadTarget = useRef(null); // { katIdx, punktId }
 
   useEffect(() => {
     saveData(KEY, projekter);
@@ -74,7 +106,7 @@ export default function DocChecklist() {
       oprettet: new Date().toISOString(),
       kategorier: DEFAULT_KATEGORIER.map(k => ({
         navn: k.navn,
-        punkter: k.punkter.map(p => ({ id: generateId(), tekst: p, checked: false, custom: false }))
+        punkter: k.punkter.map(p => ({ id: generateId(), tekst: p, checked: false, custom: false, billeder: [] }))
       }))
     };
     setProjekter(prev => [...prev, nytProjekt]);
@@ -110,7 +142,7 @@ export default function DocChecklist() {
         if (ki !== nytPunktKategori) return k;
         return {
           ...k,
-          punkter: [...k.punkter, { id: generateId(), tekst, checked: false, custom: true }]
+          punkter: [...k.punkter, { id: generateId(), tekst, checked: false, custom: true, billeder: [] }]
         };
       });
       return { ...p, kategorier };
@@ -127,6 +159,59 @@ export default function DocChecklist() {
       });
       return { ...p, kategorier };
     }));
+  }
+
+  function startUpload(katIdx, punktId) {
+    uploadTarget.current = { katIdx, punktId };
+    fileInputRef.current.value = '';
+    fileInputRef.current.click();
+  }
+
+  async function handleFileSelect(e) {
+    const file = e.target.files?.[0];
+    if (!file || !uploadTarget.current) return;
+    try {
+      const dataUrl = await compressImage(file);
+      const { katIdx, punktId } = uploadTarget.current;
+      setProjekter(prev => prev.map(p => {
+        if (p.id !== aktivtProjektId) return p;
+        const kategorier = p.kategorier.map((k, ki) => {
+          if (ki !== katIdx) return k;
+          return {
+            ...k,
+            punkter: k.punkter.map(pt => {
+              if (pt.id !== punktId) return pt;
+              if ((pt.billeder || []).length >= MAX_BILLEDER) return pt;
+              return {
+                ...pt,
+                billeder: [...(pt.billeder || []), { id: generateId(), dataUrl, dato: new Date().toISOString() }]
+              };
+            })
+          };
+        });
+        return { ...p, kategorier };
+      }));
+    } catch (err) {
+      console.warn('Billedupload fejlede:', err);
+    }
+  }
+
+  function sletBillede(katIdx, punktId, billedeId) {
+    setProjekter(prev => prev.map(p => {
+      if (p.id !== aktivtProjektId) return p;
+      const kategorier = p.kategorier.map((k, ki) => {
+        if (ki !== katIdx) return k;
+        return {
+          ...k,
+          punkter: k.punkter.map(pt => {
+            if (pt.id !== punktId) return pt;
+            return { ...pt, billeder: (pt.billeder || []).filter(b => b.id !== billedeId) };
+          })
+        };
+      });
+      return { ...p, kategorier };
+    }));
+    setVisBillede(null);
   }
 
   // Progress calculation
@@ -159,10 +244,25 @@ export default function DocChecklist() {
     return { 'Projekt': aktivtProjekt.navn, 'Oprettet': new Date(aktivtProjekt.oprettet).toLocaleDateString('da-DK') };
   }
 
+  // Get image for modal view
+  const visningsBillede = visBillede && aktivtProjekt
+    ? aktivtProjekt.kategorier[visBillede.katIdx]?.punkter.find(p => p.id === visBillede.punktId)?.billeder?.[visBillede.billedeIdx]
+    : null;
+
   return (
     <div className="tool-page">
       <h1>Dokumentationstjekliste</h1>
       <p>Systematisk fotodokumentation pr. byggeprojekt.</p>
+
+      {/* Hidden file input */}
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="image/*"
+        capture="environment"
+        style={{ display: 'none' }}
+        onChange={handleFileSelect}
+      />
 
       <div className="card">
         <h2>Vælg eller opret projekt</h2>
@@ -254,32 +354,64 @@ export default function DocChecklist() {
                       {checked}/{total}
                     </span>
                   </h3>
-                  {kat.punkter.map(punkt => (
-                    <label key={punkt.id} style={{
-                      display: 'flex', alignItems: 'flex-start', gap: '0.5rem',
-                      padding: '0.35rem 0', cursor: 'pointer',
-                      textDecoration: punkt.checked ? 'line-through' : 'none',
-                      color: punkt.checked ? 'var(--text-secondary)' : 'var(--text-primary)',
-                      fontSize: '0.9rem'
-                    }}>
-                      <input
-                        type="checkbox"
-                        checked={punkt.checked}
-                        onChange={() => togglePunkt(katIdx, punkt.id)}
-                        style={{ marginTop: '0.15rem', accentColor: 'var(--accent)' }}
-                      />
-                      <span style={{ flex: 1 }}>{punkt.tekst}</span>
-                      {punkt.custom && (
-                        <button
-                          className="btn btn-sm btn-danger"
-                          onClick={e => { e.preventDefault(); fjernPunkt(katIdx, punkt.id); }}
-                          style={{ padding: '0 0.3rem', fontSize: '0.7rem', lineHeight: 1 }}
-                        >
-                          ×
-                        </button>
-                      )}
-                    </label>
-                  ))}
+                  {kat.punkter.map(punkt => {
+                    const billeder = punkt.billeder || [];
+                    const kanUploade = billeder.length < MAX_BILLEDER;
+                    return (
+                      <div key={punkt.id} className="doc-punkt-wrapper">
+                        <label className="doc-punkt-label">
+                          <input
+                            type="checkbox"
+                            checked={punkt.checked}
+                            onChange={() => togglePunkt(katIdx, punkt.id)}
+                          />
+                          <span style={{
+                            flex: 1,
+                            textDecoration: punkt.checked ? 'line-through' : 'none',
+                            color: punkt.checked ? 'var(--text-secondary)' : 'var(--text-primary)',
+                          }}>{punkt.tekst}</span>
+                          <button
+                            className="doc-image-btn"
+                            onClick={e => { e.preventDefault(); if (kanUploade) startUpload(katIdx, punkt.id); }}
+                            disabled={!kanUploade}
+                            title={kanUploade ? 'Tilføj billede' : `Max ${MAX_BILLEDER} billeder`}
+                            type="button"
+                          >
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                              <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
+                              <circle cx="8.5" cy="8.5" r="1.5" />
+                              <polyline points="21 15 16 10 5 21" />
+                            </svg>
+                            {billeder.length > 0 && (
+                              <span className="doc-image-count">{billeder.length}/{MAX_BILLEDER}</span>
+                            )}
+                          </button>
+                          {punkt.custom && (
+                            <button
+                              className="btn btn-sm btn-danger"
+                              onClick={e => { e.preventDefault(); fjernPunkt(katIdx, punkt.id); }}
+                              style={{ padding: '0 0.3rem', fontSize: '0.7rem', lineHeight: 1 }}
+                            >
+                              ×
+                            </button>
+                          )}
+                        </label>
+                        {billeder.length > 0 && (
+                          <div className="doc-thumbnails">
+                            {billeder.map((bil, bilIdx) => (
+                              <img
+                                key={bil.id}
+                                src={bil.dataUrl}
+                                alt={`Billede ${bilIdx + 1}`}
+                                className="doc-thumb"
+                                onClick={() => setVisBillede({ katIdx, punktId: punkt.id, billedeIdx: bilIdx })}
+                              />
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
                 </div>
               );
             })}
@@ -331,6 +463,28 @@ export default function DocChecklist() {
               materialList={null}
               notes={null}
             />
+          </div>
+        </>
+      )}
+
+      {/* Image viewer modal */}
+      {visningsBillede && (
+        <>
+          <div className="modal-overlay" onClick={() => setVisBillede(null)} />
+          <div className="doc-image-modal">
+            <img src={visningsBillede.dataUrl} alt="Dokumentation" className="doc-image-full" />
+            <div className="doc-image-modal-actions">
+              <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>
+                {new Date(visningsBillede.dato).toLocaleString('da-DK')}
+              </span>
+              <button
+                className="btn btn-sm btn-danger"
+                onClick={() => sletBillede(visBillede.katIdx, visBillede.punktId, visningsBillede.id)}
+              >
+                Slet billede
+              </button>
+              <button className="btn btn-sm" onClick={() => setVisBillede(null)}>Luk</button>
+            </div>
           </div>
         </>
       )}
