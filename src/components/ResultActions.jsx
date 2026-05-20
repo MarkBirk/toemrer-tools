@@ -75,7 +75,7 @@ export default function ResultActions({ toolType, toolPath, title, inputs, resul
         headers: { 'Content-Type': 'application/json', 'x-admin-token': adminToken },
         body: JSON.stringify({
           to: recipients,
-          subject: `HåndværkerTools: ${data.title}`,
+          subject: `HåndværkerHub: ${data.title}`,
           html: generateEmailHTML(data),
           text: '',
           pdfBase64,

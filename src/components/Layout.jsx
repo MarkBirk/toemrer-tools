@@ -32,7 +32,7 @@ export default function Layout({ children }) {
         >
           <span /><span /><span />
         </button>
-        <Link to="/" className="header-logo">HåndværkerTools</Link>
+        <Link to="/" className="header-logo">HåndværkerHub</Link>
         <div className="header-auth-buttons">
           {loading ? null : user ? (
             <>

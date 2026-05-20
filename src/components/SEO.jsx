@@ -1,7 +1,7 @@
 import { Helmet } from 'react-helmet-async';
 import { getAdminSeoOverride, getAdminSiteName, getAdminBaseUrl } from '../utils/storage';
 
-const DEFAULT_SITE_NAME = 'HåndværkerTools';
+const DEFAULT_SITE_NAME = 'HåndværkerHub';
 const DEFAULT_BASE_URL = 'https://toemrer-tools.netlify.app';
 
 export default function SEO({ title, description, path }) {

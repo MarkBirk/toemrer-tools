@@ -76,11 +76,11 @@ function Home() {
 function Privatlivspolitik() {
   return (
     <div className="tool-page">
-      <SEO title="Privatlivspolitik" description="Læs om hvordan HåndværkerTools håndterer dine data." path="/privatlivspolitik" />
+      <SEO title="Privatlivspolitik" description="Læs om hvordan HåndværkerHub håndterer dine data." path="/privatlivspolitik" />
       <h1>Privatlivspolitik</h1>
       <div className="card" style={{ lineHeight: 1.7 }}>
         <h2>Dataindsamling</h2>
-        <p>HåndværkerTools indsamler <strong>ingen personlige oplysninger</strong>. Vi bruger ikke cookies, tracking eller analyse-værktøjer, medmindre det er aktiveret af siteadministratoren via admin-panelet (f.eks. Google Analytics).</p>
+        <p>HåndværkerHub indsamler <strong>ingen personlige oplysninger</strong>. Vi bruger ikke cookies, tracking eller analyse-værktøjer, medmindre det er aktiveret af siteadministratoren via admin-panelet (f.eks. Google Analytics).</p>
 
         <h2>Lokal lagring</h2>
         <p>Alle dine beregninger, materialelister og noter gemmes udelukkende i din browsers <strong>localStorage</strong>. Data forlader aldrig din enhed og sendes ikke til nogen server.</p>
@@ -147,7 +147,7 @@ function Kontakt() {
   if (sent) {
     return (
       <div className="tool-page">
-        <SEO title="Kontakt" description="Kontakt HåndværkerTools med spørgsmål, feedback eller fejlmeldinger." path="/kontakt" />
+        <SEO title="Kontakt" description="Kontakt HåndværkerHub med spørgsmål, feedback eller fejlmeldinger." path="/kontakt" />
         <h1>Kontakt</h1>
         <div className="card contact-success">
           <h2>Tak for din henvendelse!</h2>
@@ -162,7 +162,7 @@ function Kontakt() {
 
   return (
     <div className="tool-page">
-      <SEO title="Kontakt" description="Kontakt HåndværkerTools med spørgsmål, feedback eller fejlmeldinger." path="/kontakt" />
+      <SEO title="Kontakt" description="Kontakt HåndværkerHub med spørgsmål, feedback eller fejlmeldinger." path="/kontakt" />
       <h1>Kontakt</h1>
       <div className="card">
         <p>Har du spørgsmål, feedback eller har du fundet en fejl? Udfyld formularen herunder, så vender vi tilbage hurtigst muligt.</p>

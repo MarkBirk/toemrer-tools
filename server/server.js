@@ -375,12 +375,12 @@ if (process.env.NODE_ENV === 'production') {
 // ─── Start ───────────────────────────────────────────
 initDB().then(() => {
   app.listen(PORT, () => {
-    console.log(`HåndværkerTools server kører på port ${PORT}`);
+    console.log(`HåndværkerHub server kører på port ${PORT}`);
   });
 }).catch(err => {
   console.error('DB init fejl:', err.message);
   // Start serveren alligevel (email og static files virker stadig)
   app.listen(PORT, () => {
-    console.log(`HåndværkerTools server kører på port ${PORT} (uden database)`);
+    console.log(`HåndværkerHub server kører på port ${PORT} (uden database)`);
   });
 });

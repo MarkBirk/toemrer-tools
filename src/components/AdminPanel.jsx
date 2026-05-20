@@ -873,7 +873,7 @@ function ContactTab({ settings, setSettings, showMessage }) {
 
     if (!adminToken || !apiUrl) {
       // Fallback: mailto
-      const subject = encodeURIComponent(`Re: ${msg.emne} — HåndværkerTools`);
+      const subject = encodeURIComponent(`Re: ${msg.emne} — HåndværkerHub`);
       const body = encodeURIComponent(replyText);
       window.open(`mailto:${msg.email}?subject=${subject}&body=${body}`, '_blank');
       // Markér som besvaret
@@ -894,7 +894,7 @@ function ContactTab({ settings, setSettings, showMessage }) {
         headers: { 'Content-Type': 'application/json', 'x-admin-token': adminToken },
         body: JSON.stringify({
           to: [msg.email],
-          subject: `Re: ${msg.emne} — HåndværkerTools`,
+          subject: `Re: ${msg.emne} — HåndværkerHub`,
           html: `<p>${replyText.replace(/\n/g, '<br>')}</p><hr><p><em>Oprindelig henvendelse fra ${msg.navn}:</em></p><p>${msg.besked.replace(/\n/g, '<br>')}</p>`,
           text: replyText + '\n\n---\nOprindelig henvendelse:\n' + msg.besked,
         })

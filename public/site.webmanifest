@@ -1,6 +1,6 @@
 {
-  "name": "HåndværkerTools",
-  "short_name": "HåndværkerTools",
+  "name": "HåndværkerHub",
+  "short_name": "HåndværkerHub",
   "description": "Praktiske beregningsværktøjer til håndværkere",
   "start_url": "/",
   "display": "standalone",

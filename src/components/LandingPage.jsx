@@ -66,7 +66,7 @@ export default function LandingPage({ onOpenAuth }) {
     <div className="landing">
       {/* Hero */}
       <section className="landing-hero">
-        <h1 className="landing-h1">HåndværkerTools</h1>
+        <h1 className="landing-h1">HåndværkerHub</h1>
         <p className="landing-hook">Spar tid på pladsen — beregn rigtigt første gang</p>
         <p className="landing-desc">
           Gratis beregningsværktøjer bygget til det danske håndværk.
