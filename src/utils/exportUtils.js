@@ -1,5 +1,5 @@
-import jsPDF from 'jspdf';
-import 'jspdf-autotable';
+import { jsPDF } from 'jspdf';
+import autoTable from 'jspdf-autotable';
 
 // Generate PDF from data
 export function generatePDF({ title, date, inputs, results, materialList, notes }) {
@@ -59,7 +59,7 @@ export function generatePDF({ title, date, inputs, results, materialList, notes 
     doc.text('Materialeliste', 14, y);
     y += 4;
 
-    doc.autoTable({
+    autoTable(doc, {
       startY: y,
       head: [['Materiale', 'Mængde', 'Enhed', 'Noter']],
       body: materialList.map(m => [
@@ -239,7 +239,7 @@ export function generateTilbudPDF({ title, date, tilbudDetaljer, notes }) {
     { content: `${formatKr(d.totalInklMoms)} kr.`, styles: { fontStyle: 'bold', fontSize: 11, textColor: [140, 104, 64] } }
   ]);
 
-  doc.autoTable({
+  autoTable(doc, {
     startY: y,
     body: rows,
     columns: [
