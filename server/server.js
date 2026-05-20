@@ -1,5 +1,6 @@
 import 'dotenv/config';
 import express from 'express';
+import helmet from 'helmet';
 import cors from 'cors';
 import rateLimit from 'express-rate-limit';
 import nodemailer from 'nodemailer';
@@ -12,10 +13,55 @@ import { fileURLToPath } from 'url';
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const app = express();
 const PORT = process.env.PORT || 3001;
-const JWT_SECRET = process.env.JWT_SECRET || 'dev-secret-change-me';
+const isProd = process.env.NODE_ENV === 'production';
+
+const JWT_SECRET = process.env.JWT_SECRET || (isProd ? null : 'dev-secret-change-me');
+if (!JWT_SECRET) {
+  console.error('FATAL: JWT_SECRET er ikke sat i produktion. Stopper.');
+  process.exit(1);
+}
 
 // ─── Middleware ───────────────────────────────────────
-app.use(cors());
+// Bag Netlify/reverse-proxy: stol på X-Forwarded-* så rate limiting ser klientens IP
+app.set('trust proxy', 1);
+
+app.use(helmet({
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"],
+      baseUri: ["'self'"],
+      objectSrc: ["'none'"],
+      frameAncestors: ["'none'"],
+      formAction: ["'self'"],
+      scriptSrc: ["'self'"],
+      styleSrc: ["'self'", "'unsafe-inline'", 'https://fonts.googleapis.com'],
+      fontSrc: ["'self'", 'https://fonts.gstatic.com'],
+      imgSrc: ["'self'", 'data:', 'https:'],
+      connectSrc: ["'self'"],
+      manifestSrc: ["'self'"],
+      workerSrc: ["'self'"],
+      upgradeInsecureRequests: [],
+    },
+  },
+  crossOriginEmbedderPolicy: false,
+}));
+
+// CORS: lås til kendte origins i produktion (komma-separeret i ALLOWED_ORIGINS)
+const allowedOrigins = (process.env.ALLOWED_ORIGINS || '')
+  .split(',')
+  .map(o => o.trim())
+  .filter(Boolean);
+app.use(cors({
+  origin: (origin, cb) => {
+    // Tillad same-origin/server-til-server kald (ingen Origin-header)
+    if (!origin) return cb(null, true);
+    if (!isProd || allowedOrigins.length === 0 || allowedOrigins.includes(origin)) {
+      return cb(null, true);
+    }
+    cb(new Error('Ikke tilladt af CORS'));
+  },
+}));
+
 app.use(express.json({ limit: '2mb' }));
 
 // ─── MySQL Connection Pool ───────────────────────────
@@ -101,17 +147,39 @@ function requireDB(req, res, next) {
   next();
 }
 
-function requireAuth(req, res, next) {
+async function requireAuth(req, res, next) {
   const authHeader = req.headers.authorization;
   if (!authHeader?.startsWith('Bearer ')) {
     return res.status(401).json({ error: 'Ikke logget ind.' });
   }
+  let claims;
   try {
-    req.user = jwt.verify(authHeader.slice(7), JWT_SECRET);
-    next();
+    claims = jwt.verify(authHeader.slice(7), JWT_SECRET);
   } catch {
     return res.status(401).json({ error: 'Ugyldig eller udløbet session.' });
   }
+
+  // Tjek mod databasen så deaktiverede konti mister adgang straks (ikke først ved token-udløb)
+  if (db) {
+    try {
+      const [rows] = await db.execute('SELECT id, role, disabled FROM users WHERE id = ?', [claims.id]);
+      if (rows.length === 0) {
+        return res.status(401).json({ error: 'Ugyldig session.' });
+      }
+      if (rows[0].disabled) {
+        return res.status(403).json({ error: 'Denne konto er deaktiveret.' });
+      }
+      // Brug DB-rollen som autoritativ kilde, men behold email fra token
+      req.user = { id: rows[0].id, role: rows[0].role, email: claims.email };
+    } catch (err) {
+      console.error('Auth DB-tjek fejl:', err.message);
+      return res.status(500).json({ error: 'Kunne ikke verificere session.' });
+    }
+  } else {
+    // Ingen DB (dev/no-DB mode): fald tilbage til token-claims
+    req.user = claims;
+  }
+  next();
 }
 
 function requireAdmin(req, res, next) {
@@ -121,18 +189,6 @@ function requireAdmin(req, res, next) {
     }
     next();
   });
-}
-
-// Legacy token auth (for email endpoint)
-function requireToken(req, res, next) {
-  const token = req.headers['x-admin-token'];
-  if (!process.env.ADMIN_TOKEN) {
-    return res.status(500).json({ error: 'Server er ikke konfigureret (mangler ADMIN_TOKEN).' });
-  }
-  if (token !== process.env.ADMIN_TOKEN) {
-    return res.status(401).json({ error: 'Ugyldigt token.' });
-  }
-  next();
 }
 
 // ─── Auth Endpoints ──────────────────────────────────
@@ -147,8 +203,8 @@ app.post('/api/auth/signup', requireDB, authLimiter, async (req, res) => {
     if (!isValidEmail(email)) {
       return res.status(400).json({ error: 'Ugyldig e-mail-adresse.' });
     }
-    if (password.length < 6) {
-      return res.status(400).json({ error: 'Adgangskode skal være mindst 6 tegn.' });
+    if (password.length < 8) {
+      return res.status(400).json({ error: 'Adgangskode skal være mindst 8 tegn.' });
     }
 
     const [existing] = await db.execute('SELECT id FROM users WHERE email = ?', [email.toLowerCase()]);
@@ -314,7 +370,7 @@ app.get('/api/admin/waitlist', requireDB, requireAdmin, async (req, res) => {
 });
 
 // ─── Email Endpoint (existing) ───────────────────────
-app.post('/api/send-email', emailLimiter, requireToken, async (req, res) => {
+app.post('/api/send-email', emailLimiter, requireAuth, async (req, res) => {
   try {
     const { to, subject, html, text, pdfBase64, pdfFilename } = req.body;
 
