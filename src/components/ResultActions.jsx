@@ -1,11 +1,14 @@
 import { useState } from 'react';
-import { saveItem, addToMaterialList, getAdminSettings } from '../utils/storage';
+import { saveItem, addToMaterialList } from '../utils/storage';
 import { downloadPDF, downloadCSV, downloadJSON, copyText, generateEmailHTML, getPDFBase64, generateTilbudPDF } from '../utils/exportUtils';
 import { copyShareLink } from '../utils/shareLink';
 import { isFeatureLocked } from '../services/pro';
+import { apiPost } from '../services/api';
+import { useAuth } from '../contexts/AuthContext';
 import ProBadge from './ProBadge';
 
 export default function ResultActions({ toolType, toolPath, title, inputs, results, materialList, notes, onSaved, tilbudDetaljer }) {
+  const { user } = useAuth();
   const [saveTitle, setSaveTitle] = useState('');
   const [showSave, setShowSave] = useState(false);
   const [showEmail, setShowEmail] = useState(false);
@@ -66,26 +69,18 @@ export default function ResultActions({ toolType, toolPath, title, inputs, resul
     const recipients = emailTo.split(',').map(e => e.trim()).filter(Boolean);
     setEmailSending(true);
     try {
-      const adminSettings = getAdminSettings();
-      const adminToken = adminSettings.emailAdminToken || '';
-      const apiUrl = adminSettings.emailApiUrl || '/api';
       const pdfBase64 = getTilbudPDFBase64();
-      const res = await fetch(`${apiUrl}/send-email`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'x-admin-token': adminToken },
-        body: JSON.stringify({
-          to: recipients,
-          subject: `HåndværkerHub: ${data.title}`,
-          html: generateEmailHTML(data),
-          text: '',
-          pdfBase64,
-          pdfFilename: `${data.title || 'beregning'}.pdf`
-        })
+      const res = await apiPost('/api/send-email', {
+        to: recipients,
+        subject: `HåndværkerHub: ${data.title}`,
+        html: generateEmailHTML(data),
+        text: '',
+        pdfBase64,
+        pdfFilename: `${data.title || 'beregning'}.pdf`
       });
-      const json = await res.json();
-      setMsg(json.success ? 'E-mail sendt!' : (json.error || 'Fejl'));
-    } catch {
-      setMsg('Kunne ikke sende. Tjek server-forbindelse.');
+      setMsg(res.message || 'E-mail sendt!');
+    } catch (err) {
+      setMsg(err.message || 'Kunne ikke sende. Tjek server-forbindelse.');
     }
     setEmailSending(false);
     setTimeout(() => setMsg(''), 3000);
@@ -118,10 +113,16 @@ export default function ResultActions({ toolType, toolPath, title, inputs, resul
         <button onClick={() => { setShowSave(!showSave); setShowEmail(false); }} className="btn btn-sm btn-primary">
           {showSave ? 'Annuller' : 'Gem'}
         </button>
-        <button onClick={() => { setShowEmail(!showEmail); setShowSave(false); }} className="btn btn-sm btn-primary">
-          {showEmail ? 'Annuller' : 'E-mail'}
-        </button>
+        {user && (
+          <button onClick={() => { setShowEmail(!showEmail); setShowSave(false); }} className="btn btn-sm btn-primary">
+            {showEmail ? 'Annuller' : 'E-mail'}
+          </button>
+        )}
       </div>
+
+      {!user && (
+        <p className="text-muted" style={{ fontSize: '0.85rem', marginTop: 4 }}>Log ind for at sende e-mail.</p>
+      )}
 
       {showSave && (
         <div className="action-panel">

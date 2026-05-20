@@ -65,9 +65,7 @@ npm start
 
 Serveren kører på http://localhost:3001.
 
-I appen (forsiden → Indstillinger):
-- Sæt API URL til: `http://localhost:3001/api`
-- Sæt Admin token til den værdi du valgte i `.env`
+Sæt frontend-miljøvariablen `VITE_API_URL` (f.eks. `http://localhost:3001`) så appen kalder e-mail-serveren. E-mail-afsendelse kræver at brugeren er logget ind — `POST /api/send-email` autentificeres med brugerens JWT (`Authorization: Bearer <token>`).
 
 ## E-mail konfiguration
 
@@ -80,8 +78,9 @@ SMTP_SECURE=true
 SMTP_USER=din@email.dk
 SMTP_PASS=dit-password
 MAIL_FROM=din@email.dk
-ADMIN_TOKEN=vælg-et-sikkert-token
 ```
+
+E-mail-endpointet er beskyttet med JWT-baseret login (ikke et statisk token). Admin-området bruger rollebaseret adgang (`role: 'admin'`) på serveren.
 
 For GoDaddy Workspace Email: brug `smtpout.secureserver.net` port 465.
 

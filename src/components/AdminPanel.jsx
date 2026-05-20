@@ -2,10 +2,8 @@ import { useState, useEffect, useRef } from 'react';
 import { getAdminSettings, updateAdminSettings, resetAdminSettings } from '../utils/storage';
 import { CALC_DEFAULTS, getCalcDefaults } from '../utils/calcDefaults';
 import { useAuth } from '../contexts/AuthContext';
-import { apiGet, apiPatch } from '../services/api';
-
-// Admin-adgangskode sættes som env-variabel i Netlify
-const ADMIN_PASSWORD = import.meta.env.VITE_ADMIN_PASSWORD || '';
+import { apiGet, apiPatch, apiPost } from '../services/api';
+import AuthModal from './AuthModal';
 
 // Alle sider i appen med deres hardcoded defaults
 const ALL_PAGES = [
@@ -27,18 +25,15 @@ const ALL_PAGES = [
 ];
 
 export default function AdminPanel() {
-  const [authenticated, setAuthenticated] = useState(false);
+  const { user, loading, isAdmin, signOut } = useAuth();
   const [settings, setSettings] = useState({});
   const [tab, setTab] = useState('users');
   const [message, setMessage] = useState(null);
+  const [showAuth, setShowAuth] = useState(false);
   const importRef = useRef();
 
   useEffect(() => {
-    const s = getAdminSettings();
-    setSettings(s);
-    if (sessionStorage.getItem('toemrer_admin_auth') === 'true') {
-      setAuthenticated(true);
-    }
+    setSettings(getAdminSettings());
   }, []);
 
   const showMessage = (text, type = 'success') => {
@@ -46,39 +41,48 @@ export default function AdminPanel() {
     setTimeout(() => setMessage(null), 3000);
   };
 
-  // Hvis VITE_ADMIN_PASSWORD ikke er sat, er admin utilgængeligt
-  if (!ADMIN_PASSWORD) {
+  // Indlæser auth-status
+  if (loading) {
     return (
       <div className="tool-page">
         <div className="card admin-login-card">
-          <h2>🔒 Admin ikke konfigureret</h2>
-          <p className="text-muted">
-            Admin panelet kræver en adgangskode sat som miljøvariabel.<br />
-            Tilføj <code>VITE_ADMIN_PASSWORD</code> i Netlify under Site settings &gt; Environment variables, og deploy igen.
-          </p>
+          <p className="text-muted">Indlæser…</p>
         </div>
       </div>
     );
   }
 
-  if (!authenticated) {
-    return <PasswordGate onAuth={() => {
-      setAuthenticated(true);
-      sessionStorage.setItem('toemrer_admin_auth', 'true');
-      setSettings(getAdminSettings());
-    }} />;
+  // Ikke logget ind
+  if (!user) {
+    return (
+      <div className="tool-page">
+        <div className="card admin-login-card">
+          <h2>🔒 Admin Panel</h2>
+          <p className="text-muted">Du skal være logget ind med en admin-konto for at tilgå admin panelet.</p>
+          <button className="btn btn-primary btn-block" onClick={() => setShowAuth(true)}>Log ind</button>
+        </div>
+        {showAuth && <AuthModal onClose={() => setShowAuth(false)} />}
+      </div>
+    );
   }
 
-  const handleLogout = () => {
-    sessionStorage.removeItem('toemrer_admin_auth');
-    setAuthenticated(false);
-  };
+  // Logget ind men ikke admin
+  if (!isAdmin) {
+    return (
+      <div className="tool-page">
+        <div className="card admin-login-card">
+          <h2>🔒 Adgang nægtet</h2>
+          <p className="text-muted">Adgang nægtet — kræver admin-rettigheder.</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="tool-page admin-panel">
       <div className="admin-header">
         <h2>⚙️ Admin Panel</h2>
-        <button className="btn btn-sm btn-secondary" onClick={handleLogout}>Log ud</button>
+        <button className="btn btn-sm btn-secondary" onClick={signOut}>Log ud</button>
       </div>
 
       {message && (
@@ -122,46 +126,6 @@ export default function AdminPanel() {
           importRef={importRef}
         />
       )}
-    </div>
-  );
-}
-
-// ─── Password Gate Component ─────────────────────────
-function PasswordGate({ onAuth }) {
-  const [pw, setPw] = useState('');
-  const [error, setError] = useState('');
-
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    setError('');
-    if (pw === ADMIN_PASSWORD) {
-      onAuth();
-    } else {
-      setError('Forkert adgangskode.');
-    }
-  };
-
-  return (
-    <div className="tool-page">
-      <div className="card admin-login-card">
-        <h2>🔒 Admin Login</h2>
-        <p className="text-muted">Indtast adgangskoden for at tilgå admin panelet.</p>
-        <form onSubmit={handleSubmit}>
-          <div className="form-group">
-            <label>Adgangskode</label>
-            <input
-              className="input"
-              type="password"
-              value={pw}
-              onChange={e => setPw(e.target.value)}
-              placeholder="Indtast adgangskode"
-              autoFocus
-            />
-          </div>
-          {error && <p className="admin-error">{error}</p>}
-          <button type="submit" className="btn btn-primary btn-block">Log ind</button>
-        </form>
-      </div>
     </div>
   );
 }
@@ -304,8 +268,6 @@ function ScriptsTab({ settings, setSettings, showMessage }) {
 function SettingsTab({ settings, setSettings, showMessage, importRef }) {
   const [siteName, setSiteName] = useState(settings.siteName || '');
   const [baseUrl, setBaseUrl] = useState(settings.baseUrl || '');
-  const [apiUrl, setApiUrl] = useState(settings.emailApiUrl || '');
-  const [adminToken, setAdminToken] = useState(settings.emailAdminToken || '');
   const firma = settings.firma || {};
   const [firmaNavn, setFirmaNavn] = useState(firma.navn || '');
   const [firmaCvr, setFirmaCvr] = useState(firma.cvr || '');
@@ -318,12 +280,6 @@ function SettingsTab({ settings, setSettings, showMessage, importRef }) {
     const updated = updateAdminSettings({ siteName, baseUrl });
     setSettings(updated);
     showMessage('Site-indstillinger gemt!');
-  };
-
-  const handleSaveEmail = () => {
-    const updated = updateAdminSettings({ emailApiUrl: apiUrl, emailAdminToken: adminToken });
-    setSettings(updated);
-    showMessage('E-mail-indstillinger gemt!');
   };
 
   const handleExport = () => {
@@ -350,8 +306,6 @@ function SettingsTab({ settings, setSettings, showMessage, importRef }) {
         setSettings(data);
         setSiteName(data.siteName || '');
         setBaseUrl(data.baseUrl || '');
-        setApiUrl(data.emailApiUrl || '');
-        setAdminToken(data.emailAdminToken || '');
         const f = data.firma || {};
         setFirmaNavn(f.navn || '');
         setFirmaCvr(f.cvr || '');
@@ -374,8 +328,6 @@ function SettingsTab({ settings, setSettings, showMessage, importRef }) {
       setSettings(reset);
       setSiteName('');
       setBaseUrl('');
-      setApiUrl('');
-      setAdminToken('');
       showMessage('Alle indstillinger nulstillet!');
     }
   };
@@ -446,33 +398,6 @@ function SettingsTab({ settings, setSettings, showMessage, importRef }) {
       </div>
 
       <div className="card">
-        <h3>E-mail (SMTP server)</h3>
-        <p className="text-muted">Forbind til din e-mail-server, så besøgende kan få tilsendt beregninger som PDF.</p>
-        <div className="form-group">
-          <label>API URL</label>
-          <input
-            className="input"
-            value={apiUrl}
-            onChange={e => setApiUrl(e.target.value)}
-            placeholder="https://din-server.com/api"
-          />
-          <small className="text-muted">URL til din Express e-mail-server (se DEPLOY.md).</small>
-        </div>
-        <div className="form-group">
-          <label>Admin Token</label>
-          <input
-            className="input"
-            type="password"
-            value={adminToken}
-            onChange={e => setAdminToken(e.target.value)}
-            placeholder="Hemmeligt token til e-mail API"
-          />
-          <small className="text-muted">Skal matche ADMIN_TOKEN på serveren.</small>
-        </div>
-        <button className="btn btn-primary" onClick={handleSaveEmail}>💾 Gem e-mail</button>
-      </div>
-
-      <div className="card">
         <h3>Data</h3>
         <div className="admin-data-buttons">
           <button className="btn btn-secondary" onClick={handleExport}>
@@ -494,7 +419,7 @@ function SettingsTab({ settings, setSettings, showMessage, importRef }) {
           🗑 Nulstil alle indstillinger
         </button>
         <small className="text-muted" style={{ display: 'block', marginTop: '0.5rem' }}>
-          Nulstiller SEO, scripts, site- og e-mail-indstillinger.
+          Nulstiller SEO, scripts og site-indstillinger.
         </small>
       </div>
 
@@ -868,51 +793,23 @@ function ContactTab({ settings, setSettings, showMessage }) {
 
   async function sendReply(msg) {
     if (!replyText.trim()) return;
-    const adminToken = settings.emailAdminToken || '';
-    const apiUrl = settings.emailApiUrl || '/api';
-
-    if (!adminToken || !apiUrl) {
-      // Fallback: mailto
-      const subject = encodeURIComponent(`Re: ${msg.emne} — HåndværkerHub`);
-      const body = encodeURIComponent(replyText);
-      window.open(`mailto:${msg.email}?subject=${subject}&body=${body}`, '_blank');
-      // Markér som besvaret
+    setReplySending(true);
+    try {
+      await apiPost('/api/send-email', {
+        to: [msg.email],
+        subject: `Re: ${msg.emne} — HåndværkerHub`,
+        html: `<p>${replyText.replace(/\n/g, '<br>')}</p><hr><p><em>Oprindelig henvendelse fra ${msg.navn}:</em></p><p>${msg.besked.replace(/\n/g, '<br>')}</p>`,
+        text: replyText + '\n\n---\nOprindelig henvendelse:\n' + msg.besked,
+      });
       const newMessages = messages.map(m =>
         m.id === msg.id ? { ...m, besvaret: true, laest: true } : m
       );
       updateMessages(newMessages);
       setReplyId(null);
       setReplyText('');
-      showMessage('Mailto åbnet — markeret som besvaret.');
-      return;
-    }
-
-    setReplySending(true);
-    try {
-      const res = await fetch(`${apiUrl}/send-email`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'x-admin-token': adminToken },
-        body: JSON.stringify({
-          to: [msg.email],
-          subject: `Re: ${msg.emne} — HåndværkerHub`,
-          html: `<p>${replyText.replace(/\n/g, '<br>')}</p><hr><p><em>Oprindelig henvendelse fra ${msg.navn}:</em></p><p>${msg.besked.replace(/\n/g, '<br>')}</p>`,
-          text: replyText + '\n\n---\nOprindelig henvendelse:\n' + msg.besked,
-        })
-      });
-      const json = await res.json();
-      if (json.success) {
-        const newMessages = messages.map(m =>
-          m.id === msg.id ? { ...m, besvaret: true, laest: true } : m
-        );
-        updateMessages(newMessages);
-        setReplyId(null);
-        setReplyText('');
-        showMessage('Svar sendt!');
-      } else {
-        showMessage(json.error || 'Kunne ikke sende.', 'error');
-      }
-    } catch {
-      showMessage('Serverfejl — prøv mailto i stedet.', 'error');
+      showMessage('Svar sendt!');
+    } catch (err) {
+      showMessage(err.message || 'Kunne ikke sende.', 'error');
     }
     setReplySending(false);
   }

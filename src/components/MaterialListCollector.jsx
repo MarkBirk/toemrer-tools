@@ -1,8 +1,11 @@
 import { useState, useEffect } from 'react';
-import { getMaterialList, removeMaterialListItem, clearMaterialList, updateMaterialList, getAdminSettings } from '../utils/storage';
+import { getMaterialList, removeMaterialListItem, clearMaterialList, updateMaterialList } from '../utils/storage';
 import { downloadPDF, downloadCSV, downloadJSON, copyText, generateEmailHTML, getPDFBase64 } from '../utils/exportUtils';
+import { apiPost } from '../services/api';
+import { useAuth } from '../contexts/AuthContext';
 
 export default function MaterialListCollector() {
+  const { user } = useAuth();
   const [list, setList] = useState([]);
   const [msg, setMsg] = useState('');
   const [showEmail, setShowEmail] = useState(false);
@@ -53,23 +56,15 @@ export default function MaterialListCollector() {
     if (!emailTo.trim()) return flash('Angiv modtager');
     setSending(true);
     try {
-      const adminSettings = getAdminSettings();
-      const token = adminSettings.emailAdminToken || '';
-      const apiUrl = adminSettings.emailApiUrl || '/api';
-      const res = await fetch(`${apiUrl}/send-email`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'x-admin-token': token },
-        body: JSON.stringify({
-          to: emailTo.split(',').map(e => e.trim()),
-          subject: 'Tømrer Tools: Samlet materialeliste',
-          html: generateEmailHTML(data),
-          pdfBase64: getPDFBase64(data),
-          pdfFilename: 'samlet-materialeliste.pdf'
-        })
+      const res = await apiPost('/api/send-email', {
+        to: emailTo.split(',').map(e => e.trim()),
+        subject: 'Tømrer Tools: Samlet materialeliste',
+        html: generateEmailHTML(data),
+        pdfBase64: getPDFBase64(data),
+        pdfFilename: 'samlet-materialeliste.pdf'
       });
-      const json = await res.json();
-      flash(json.success ? 'E-mail sendt!' : (json.error || 'Fejl'));
-    } catch { flash('Serverfejl'); }
+      flash(res.message || 'E-mail sendt!');
+    } catch (err) { flash(err.message || 'Serverfejl'); }
     setSending(false);
   }
 
@@ -124,9 +119,15 @@ export default function MaterialListCollector() {
             <button onClick={() => downloadPDF(data)} className="btn btn-sm">PDF</button>
             <button onClick={() => downloadCSV(data.materialList)} className="btn btn-sm">CSV</button>
             <button onClick={() => { copyText(data); flash('Kopieret!'); }} className="btn btn-sm">Kopiér</button>
-            <button onClick={() => setShowEmail(!showEmail)} className="btn btn-sm btn-primary">E-mail</button>
+            {user && (
+              <button onClick={() => setShowEmail(!showEmail)} className="btn btn-sm btn-primary">E-mail</button>
+            )}
             <button onClick={handleClear} className="btn btn-sm btn-danger">Ryd alt</button>
           </div>
+
+          {!user && (
+            <p className="text-muted" style={{ fontSize: '0.85rem', marginTop: 8 }}>Log ind for at sende e-mail.</p>
+          )}
 
           {showEmail && (
             <div className="action-panel">
